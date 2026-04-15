@@ -1,0 +1,19 @@
+{
+  "name": "coordinator-dashboard-server",
+  "version": "0.1.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "firebase-admin": "^12.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.1",
+    "googleapis": "^131.0.0",
+    "@google-cloud/pubsub": "^4.3.3",
+    "axios": "^1.6.7"
+  }
+}
