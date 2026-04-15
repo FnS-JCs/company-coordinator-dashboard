@@ -1,17 +1,16 @@
 import admin from 'firebase-admin'
-import { readFileSync } from 'fs'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
-const serviceAccount = JSON.parse(readFileSync(join(__dirname, '../../serviceAccount.json'), 'utf8'))
+import dotenv from 'dotenv'
+dotenv.config()
 
 let db
 
 export function initializeFirebase() {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+    })
   })
   db = admin.firestore()
 }
