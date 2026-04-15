@@ -1,100 +1,122 @@
-import { getFirestore } from '../config/firebase.js'
-import { getGmailClient } from '../config/gmail.js'
+import { google } from 'googleapis';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const WITHDRAWAL_LABELS = ['CATEGORY_PERSONAL', 'IMPORTANT']
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const TOKEN_PATH = path.join(__dirname, '../../data/gmail-tokens.json');
 
-export async function fetchWithdrawalEmails(userId) {
-  const db = getFirestore()
-  const gmail = getGmailClient()
-  
-  const userDoc = await db.collection('users').where('uid', '==', userId).limit(1).get()
-  if (userDoc.empty) {
-    throw new Error('User not found')
+let oauth2Client;
+
+const getOAuth2Client = () => {
+  if (oauth2Client) return oauth2Client;
+
+  const clientId = process.env.GMAIL_CLIENT_ID?.replace(/[\[\]]/g, '');
+  const clientSecret = process.env.GMAIL_CLIENT_SECRET?.replace(/[\[\]]/g, '');
+  const redirectUri = process.env.GMAIL_REDIRECT_URI?.replace(/[\[\]]/g, '');
+
+  if (!clientId || !clientSecret || !redirectUri) {
+    console.error('CRITICAL: GMAIL environment variables are missing in .env');
+    console.log('Current keys:', {
+      GMAIL_CLIENT_ID: !!clientId,
+      GMAIL_CLIENT_SECRET: !!clientSecret,
+      GMAIL_REDIRECT_URI: !!redirectUri
+    });
   }
-  
-  const userData = userDoc.docs[0].data()
-  const assignedCompanies = userData.assignedCompanies || []
 
-  try {
-    const response = await gmail.users.messages.list({
-      userId: 'me',
-      maxResults: 50,
-      labelIds: ['INBOX'],
-    })
+  oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  return oauth2Client;
+};
 
-    const messages = response.data.messages || []
-    const withdrawalEmails = []
+export const gmailScopes = [
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.labels',
+];
 
-    for (const msg of messages) {
-      const message = await gmail.users.messages.get({
-        userId: 'me',
-        id: msg.id,
-        format: 'metadata',
-        metadataHeaders: ['From', 'Subject', 'Date'],
-      })
-
-      const headers = message.data.payload.headers
-      const from = headers.find(h => h.name === 'From')?.value || ''
-      const subject = headers.find(h => h.name === 'Subject')?.value || ''
-      
-      if (isWithdrawalEmail(subject, from, assignedCompanies)) {
-        withdrawalEmails.push({
-          id: message.data.id,
-          threadId: message.data.threadId,
-          from,
-          subject,
-          snippet: message.data.snippet,
-          date: new Date(parseInt(message.data.internalDate)),
-          companyId: extractCompanyId(subject, assignedCompanies),
-          isRead: !message.data.labelIds.includes('UNREAD'),
-          labelIds: message.data.labelIds,
-        })
-      }
-    }
-
-    return withdrawalEmails
-  } catch (error) {
-    console.error('Gmail API error:', error)
-    throw error
-  }
+export function getAuthUrl() {
+  const client = getOAuth2Client();
+  return client.generateAuthUrl({
+    access_type: 'offline',
+    scope: gmailScopes,
+    prompt: 'consent',
+  });
 }
 
-function isWithdrawalEmail(subject, from, companies) {
-  const withdrawalKeywords = ['withdraw', 'withdrawal', 'cancelled', 'cancel', 'not proceeding']
-  const subjectLower = subject.toLowerCase()
-  const fromLower = from.toLowerCase()
+export async function saveTokens(code) {
+  const client = getOAuth2Client();
+  const { tokens } = await client.getToken(code);
   
-  const hasKeyword = withdrawalKeywords.some(kw => subjectLower.includes(kw))
-  const hasCompanyRef = companies.some(c => fromLower.includes(c.toLowerCase()))
-  
-  return hasKeyword && hasCompanyRef
-}
-
-function extractCompanyId(subject, companies) {
-  for (const company of companies) {
-    if (subject.toLowerCase().includes(company.toLowerCase())) {
-      return company
-    }
+  // Ensure data directory exists
+  const dataDir = path.dirname(TOKEN_PATH);
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
   }
-  return null
+  
+  fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens));
+  return tokens;
 }
 
-export async function markEmailAsRead(messageId) {
-  const gmail = getGmailClient()
-  await gmail.users.messages.modify({
+export function getGmailClient() {
+  if (!fs.existsSync(TOKEN_PATH)) {
+    throw new Error('Gmail not connected. Please connect your account first.');
+  }
+  
+  const client = getOAuth2Client();
+  const tokens = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
+  client.setCredentials(tokens);
+  
+  return google.gmail({ version: 'v1', auth: client });
+}
+
+export function isConnected() {
+  return fs.existsSync(TOKEN_PATH);
+}
+
+export async function fetchCCWithdrawalEmails() {
+  const gmail = getGmailClient();
+  
+  // 1. Find the label ID for "CC-Withdrawal"
+  const labelsRes = await gmail.users.labels.list({ userId: 'me' });
+  const withdrawalLabel = labelsRes.data.labels.find(l => l.name === 'CC-Withdrawal');
+  
+  if (!withdrawalLabel) {
+    return [];
+  }
+
+  // 2. List messages with this label
+  const messagesRes = await gmail.users.messages.list({
     userId: 'me',
-    id: messageId,
-    requestBody: {
-      removeLabelIds: ['UNREAD'],
-    },
-  })
+    labelIds: [withdrawalLabel.id],
+    maxResults: 50,
+  });
+
+  const messages = messagesRes.data.messages || [];
+  const withdrawalEmails = [];
+
+  for (const msg of messages) {
+    const message = await gmail.users.messages.get({
+      userId: 'me',
+      id: msg.id,
+      format: 'metadata',
+      metadataHeaders: ['From', 'Subject', 'Date'],
+    });
+
+    const headers = message.data.payload.headers;
+    const from = headers.find(h => h.name === 'From')?.value || '';
+    const subject = headers.find(h => h.name === 'Subject')?.value || '';
+    const date = headers.find(h => h.name === 'Date')?.value || '';
+    
+    withdrawalEmails.push({
+      id: message.data.id,
+      sender: from,
+      subject,
+      date: new Date(date).toISOString(),
+      snippet: message.data.snippet,
+    });
+  }
+
+  return withdrawalEmails;
 }
 
-export async function storeWithdrawalNotification(userId, emailData) {
-  const db = getFirestore()
-  await db.collection('withdrawals').add({
-    userId,
-    ...emailData,
-    storedAt: new Date(),
-  })
-}
+export { getOAuth2Client };

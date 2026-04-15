@@ -1,30 +1,26 @@
 import admin from 'firebase-admin'
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const serviceAccount = JSON.parse(readFileSync(join(__dirname, '../../serviceAccount.json'), 'utf8'))
 
 let db
-let firestore
 
 export function initializeFirebase() {
-  const serviceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  }
-
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: admin.credential.cert(serviceAccount)
   })
-
   db = admin.firestore()
-  firestore = db
 }
 
 export function getDb() {
-  if (!db) {
-    throw new Error('Firebase not initialized. Call initializeFirebase() first.')
-  }
+  if (!db) throw new Error('Firebase not initialized')
   return db
 }
 
 export function getFirestore() {
-  return firestore
+  return db
 }

@@ -1,40 +1,56 @@
-import { Router } from 'express'
-import { fetchWithdrawalEmails, markEmailAsRead, storeWithdrawalNotification } from '../services/gmailService.js'
-import { verifyFirebaseToken } from '../middleware/auth.js'
+import { Router } from 'express';
+import { getAuthUrl, saveTokens, fetchCCWithdrawalEmails, isConnected } from '../services/gmailService.js';
+import { verifyFirebaseToken } from '../middleware/auth.js';
 
-const router = Router()
+const router = Router();
 
-router.get('/withdrawals', verifyFirebaseToken, async (req, res) => {
+// GET /api/gmail/auth-url
+router.get('/auth-url', (req, res) => {
   try {
-    const userId = req.query.userId
-    const emails = await fetchWithdrawalEmails(userId)
-    res.json(emails)
+    const url = getAuthUrl();
+    res.json({ url });
   } catch (error) {
-    console.error('Fetch withdrawals error:', error)
-    res.status(500).json({ error: 'Failed to fetch withdrawal emails' })
+    console.error('Error generating auth URL:', error);
+    res.status(500).json({ error: 'Failed to generate auth URL' });
   }
-})
+});
 
-router.patch('/withdrawals/:messageId/read', verifyFirebaseToken, async (req, res) => {
+// GET /api/gmail/oauth/callback
+router.get('/oauth/callback', async (req, res) => {
+  const { code } = req.query;
   try {
-    await markEmailAsRead(req.params.messageId)
-    res.json({ success: true })
+    if (!code) throw new Error('No code provided');
+    await saveTokens(code);
+    
+    // Redirect back to the frontend
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    res.redirect(`${clientUrl}/gmail-feed?connected=true`);
   } catch (error) {
-    console.error('Mark as read error:', error)
-    res.status(500).json({ error: 'Failed to mark email as read' })
+    console.error('OAuth callback error:', error);
+    res.status(500).send('Authentication failed. Please try again.');
   }
-})
+});
 
-router.get('/new', async (req, res) => {
+// GET /api/gmail/withdrawals
+router.get('/withdrawals', async (req, res) => {
   try {
-    const { userId } = req.query
-    const emails = await fetchWithdrawalEmails(userId)
-    const unreadEmails = emails.filter(e => !e.isRead)
-    res.json(unreadEmails)
+    const emails = await fetchCCWithdrawalEmails();
+    res.json(emails);
   } catch (error) {
-    console.error('Fetch new emails error:', error)
-    res.status(500).json({ error: 'Failed to fetch new emails' })
+    console.error('Fetch withdrawals error:', error);
+    res.status(500).json({ error: 'Failed to fetch withdrawal emails' });
   }
-})
+});
 
-export default router
+// GET /api/gmail/status
+router.get('/status', (req, res) => {
+  try {
+    const connected = isConnected();
+    res.json({ connected });
+  } catch (error) {
+    console.error('Gmail status error:', error);
+    res.status(500).json({ error: 'Failed to get Gmail status' });
+  }
+});
+
+export default router;

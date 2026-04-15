@@ -1,13 +1,13 @@
+import dotenv from 'dotenv'
+dotenv.config()
+
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
 import { initializeFirebase } from './config/firebase.js'
 import userRoutes from './routes/users.js'
 import gmailRoutes from './routes/gmail.js'
 import whatsappRoutes from './routes/whatsapp.js'
 import webhookRoutes from './routes/webhook.js'
-
-dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3001
