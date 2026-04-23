@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import DOMPurify from 'dompurify';
 import { useAuth } from '../context/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { Card } from '../components/Card';
@@ -21,9 +22,19 @@ const CompanyDetail: React.FC = () => {
   const [selectedJc, setSelectedJc] = useState('');
   const [delegating, setDelegating] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<GmailEmail | null>(null);
+  const [selectedEmailDetail, setSelectedEmailDetail] = useState<any>(null);
+  const [loadingEmail, setLoadingEmail] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   useEffect(() => {
     loadData();
@@ -57,6 +68,19 @@ const CompanyDetail: React.FC = () => {
       console.error('Failed to refresh:', error);
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleEmailClick = async (email: GmailEmail) => {
+    setSelectedEmail(email);
+    setLoadingEmail(true);
+    try {
+      const detail = await gmailService.getEmail(email.id);
+      setSelectedEmailDetail(detail);
+    } catch (error) {
+      console.error('Failed to fetch email detail:', error);
+    } finally {
+      setLoadingEmail(false);
     }
   };
 
@@ -219,7 +243,7 @@ const CompanyDetail: React.FC = () => {
             ) : (
               <div className="space-y-3">
                 {emails.map((email) => (
-                  <Card key={email.id} className="cursor-pointer" onClick={() => setSelectedEmail(email)}>
+                  <Card key={email.id} className="cursor-pointer hover:border-navy transition-colors" onClick={() => handleEmailClick(email)}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="font-medium text-grey-900">{email.from}</p>
@@ -297,32 +321,87 @@ const CompanyDetail: React.FC = () => {
 
       <Modal
         isOpen={!!selectedEmail}
-        onClose={() => setSelectedEmail(null)}
+        onClose={() => { setSelectedEmail(null); setSelectedEmailDetail(null); }}
         title="Email Details"
+        maxWidth="max-w-4xl"
       >
         {selectedEmail && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-grey-500">From</label>
-              <p className="text-grey-900">{selectedEmail.from}</p>
+          <div className="flex flex-col h-[75vh]">
+            <div className="space-y-3 mb-6 flex-shrink-0 bg-grey-50 p-4 rounded-lg border border-grey-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-grey-500 uppercase tracking-wider mb-1">From</label>
+                  <p className="text-grey-900 font-medium break-all">{selectedEmail.from}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-grey-500 uppercase tracking-wider mb-1">Date</label>
+                  <p className="text-grey-900">{new Date(selectedEmail.date).toLocaleString()}</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-grey-500 uppercase tracking-wider mb-1">Subject</label>
+                <p className="text-grey-900 font-bold text-lg">{selectedEmail.subject}</p>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-grey-500">Subject</label>
-              <p className="text-grey-900">{selectedEmail.subject}</p>
+            
+            <div className="flex-1 overflow-y-auto border border-grey-200 rounded-lg bg-white shadow-inner">
+              {loadingEmail ? (
+                <div className="flex flex-col items-center justify-center h-full space-y-3">
+                  <div className="w-8 h-8 border-4 border-navy border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-grey-500 font-medium">Fetching full email content...</p>
+                </div>
+              ) : selectedEmailDetail ? (
+                <div 
+                  className="p-6 email-body-container"
+                  dangerouslySetInnerHTML={{ 
+                    __html: DOMPurify.sanitize(selectedEmailDetail.body, {
+                      ADD_TAGS: ['iframe'], // Allow iframes if needed, but usually not for Gmail
+                      ADD_ATTR: ['target']
+                    }) 
+                  }}
+                />
+              ) : (
+                <div className="p-6">
+                  <p className="text-grey-700 whitespace-pre-wrap leading-relaxed">{selectedEmail.snippet}</p>
+                  <div className="mt-4 p-3 bg-yellow-50 text-yellow-700 rounded text-sm">
+                    Full content could not be loaded. Showing snippet only.
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-grey-500">Date</label>
-              <p className="text-grey-900">{new Date(selectedEmail.date).toLocaleString()}</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-grey-500">Snippet</label>
-              <p className="text-grey-700">{selectedEmail.snippet}</p>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <Button variant="secondary" onClick={() => setSelectedEmail(null)}>
+
+            {selectedEmailDetail?.attachments?.length > 0 && (
+              <div className="mt-6 flex-shrink-0">
+                <label className="block text-xs font-semibold text-grey-500 uppercase tracking-wider mb-2">Attachments ({selectedEmailDetail.attachments.length})</label>
+                <div className="flex flex-wrap gap-3">
+                  {selectedEmailDetail.attachments.map((att: any) => (
+                    <a
+                      key={att.attachmentId}
+                      href={gmailService.getAttachmentUrl(selectedEmail.id, att.attachmentId, att.filename, att.mimeType)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 bg-grey-50 border border-grey-200 rounded-lg hover:bg-grey-100 hover:border-navy transition-all group"
+                    >
+                      <div className="w-10 h-10 bg-white border border-grey-200 rounded flex items-center justify-center group-hover:border-navy">
+                        <svg className="w-6 h-6 text-grey-400 group-hover:text-navy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-grey-900 line-clamp-1 max-w-[200px]">{att.filename}</span>
+                        <span className="text-xs text-grey-500">{formatFileSize(att.size)}</span>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6 flex-shrink-0 pt-4 border-t border-grey-100">
+              <Button variant="secondary" onClick={() => { setSelectedEmail(null); setSelectedEmailDetail(null); }}>
                 Close
               </Button>
-              <Button variant="primary" onClick={() => { handleMarkAsRead(selectedEmail); setSelectedEmail(null); }}>
+              <Button variant="primary" onClick={() => { handleMarkAsRead(selectedEmail); setSelectedEmail(null); setSelectedEmailDetail(null); }}>
                 Mark as Read
               </Button>
             </div>

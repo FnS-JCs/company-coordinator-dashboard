@@ -101,6 +101,10 @@ export const gmailService = {
     const response = await api.get(`/gmail/emails/${messageId}`);
     return response.data;
   },
+  getAttachmentUrl(messageId: string, attachmentId: string, filename: string, mimeType: string) {
+    const params = new URLSearchParams({ filename, mimeType });
+    return `${API_BASE_URL}/gmail/emails/${messageId}/attachments/${attachmentId}?${params.toString()}`;
+  },
   async markAsRead(messageId: string, companyId: string) {
     const response = await api.post('/gmail/mark-read', { messageId, companyId });
     return response.data;

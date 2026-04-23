@@ -34,6 +34,16 @@ export function isDevMode() {
 
 export async function verifyRequest(req, res, next) {
   if (isDevMode()) {
+    // Exception for attachment downloads in dev mode (since they are direct browser requests)
+    if (req.path.includes('/attachments/') && req.method === 'GET') {
+      req.user = {
+        uid: 'dev-user',
+        email: 'dev@srcc.du.ac.in',
+        role: 'admin',
+      };
+      return next();
+    }
+
     const devRole = req.headers['x-dev-role'];
     const devEmail = req.headers['x-dev-email'];
 

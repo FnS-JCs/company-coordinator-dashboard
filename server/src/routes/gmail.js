@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { verifyRequest } from '../middleware/auth.js';
-import { fetchCompanyEmails } from '../services/gmailService.js';
+import { fetchCompanyEmails, getEmailDetail, getAttachment } from '../services/gmailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -139,6 +139,42 @@ router.get('/emails', async (req, res) => {
   } catch (error) {
     console.error('Error fetching emails:', error);
     res.status(500).json({ error: 'Failed to fetch emails' });
+  }
+});
+
+router.get('/emails/:messageId', async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    if (!fs.existsSync(TOKEN_PATH)) {
+      return res.status(400).json({ error: 'Gmail not connected' });
+    }
+
+    const email = await getEmailDetail(messageId);
+    res.json(email);
+  } catch (error) {
+    console.error('Error fetching email detail:', error);
+    res.status(500).json({ error: 'Failed to fetch email detail' });
+  }
+});
+
+router.get('/emails/:messageId/attachments/:attachmentId', async (req, res) => {
+  try {
+    const { messageId, attachmentId } = req.params;
+    const { filename, mimeType } = req.query;
+
+    if (!fs.existsSync(TOKEN_PATH)) {
+      return res.status(400).json({ error: 'Gmail not connected' });
+    }
+
+    const attachment = await getAttachment(messageId, attachmentId);
+    
+    res.setHeader('Content-Type', mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename || 'attachment'}"`);
+    res.send(attachment.data);
+  } catch (error) {
+    console.error('Error downloading attachment:', error);
+    res.status(500).json({ error: 'Failed to download attachment' });
   }
 });
 
