@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
+import { Modal } from '../../components/Modal';
 
 interface ApplicantRow {
   sNo: number;
@@ -9,6 +10,7 @@ interface ApplicantRow {
   rollNo: string;
   program: string;
   course: string;
+  rawRow: Record<string, any>;
 }
 
 const COURSE_ORDER: Record<string, number> = {
@@ -22,9 +24,13 @@ const COURSE_TO_PROGRAM: Record<string, string> = {
 };
 
 function normalizeProgram(course: string, rawProgram: string): string {
-  if (COURSE_TO_PROGRAM[course]) return COURSE_TO_PROGRAM[course];
-  if (/B\.?Com/i.test(rawProgram)) return 'B.Com. (Hons.)';
-  if (/BA|B\.A/i.test(rawProgram)) return 'B.A. (Hons.) Economics';
+  const c = course.toLowerCase();
+  if (c.includes('commerce')) return 'B.Com. (Hons.)';
+  if (c.includes('economics')) return 'B.A. (Hons.) Economics';
+  
+  const rp = rawProgram.toLowerCase();
+  if (/b\.?com/i.test(rp)) return 'B.Com. (Hons.)';
+  if (/ba|b\.a/i.test(rp)) return 'B.A. (Hons.) Economics';
   return rawProgram;
 }
 
@@ -41,46 +47,113 @@ const ROLE_KEYWORDS = new Set([
   'operations', 'finance', 'marketing', 'sales', 'hr', 'human', 'resources',
   'business', 'development', 'product', 'data', 'research', 'strategy',
   'growth', 'content', 'brand', 'digital', 'technical', 'software', 'it',
-  'management', 'supply', 'chain', 'logistics', 'campus',
+  'management', 'supply', 'chain', 'logistics', 'campus', 'graduate',
+  'specialist', 'advisor', 'representative', 'lead', 'principal',
 ]);
 
 function extractTitle(raw: string): string {
-  const match = raw.match(/FOR\s+(.+?)\s+(?:INTERNSHIP|PLACEMENT)/i);
-  if (!match) return `Applicant List || ${raw}`;
+  // 1. Remove "LIST OF APPLICANTS FOR" prefix
+  let cleaned = raw.replace(/LIST OF APPLICANTS FOR/i, '').trim();
+  
+  // 2. Remove common suffixes like "INTERNSHIP SEASON ...", "PLACEMENT SEASON ...", or just "INTERNSHIP/PLACEMENT"
+  cleaned = cleaned.replace(/(?:INTERNSHIP|PLACEMENT)(?:\s+SEASON.*)?$/i, '').trim();
+  
+  if (!cleaned) return 'Applicant List';
 
-  const words = match[1].trim().split(/\s+/);
-  if (words.length < 2) return `Applicant List || ${toTitleCase(words[0] ?? raw)}`;
+  const words = cleaned.split(/\s+/);
+  if (words.length < 2) return `Applicant List II ${toTitleCase(cleaned)}`;
 
-  // Scan from end: find last role keyword — company name starts right after it
-  let splitIdx = words.length - 1;
+  // Find splitting point (Keyword based)
+  let splitIdx = -1;
   for (let i = words.length - 1; i >= 0; i--) {
     if (ROLE_KEYWORDS.has(words[i].toLowerCase())) {
       splitIdx = i + 1;
       break;
     }
-    splitIdx = i;
   }
-  if (splitIdx === 0) splitIdx = 1;
 
-  const role = words.slice(0, splitIdx).map(toTitleCase).join(' ');
-  const company = words.slice(splitIdx).map(toTitleCase).join(' ');
+  // If no keyword found, check for "AT"
+  if (splitIdx === -1 || splitIdx === words.length) {
+    const atIdx = words.findIndex(w => w.toLowerCase() === 'at');
+    if (atIdx !== -1) {
+      splitIdx = atIdx + 1;
+    }
+  }
+  
+  // If still no split, try to guess: last word is usually company
+  if (splitIdx === -1 || splitIdx === words.length) {
+    splitIdx = words.length - 1;
+  }
+
+  let roleWords = words.slice(0, splitIdx);
+  let companyWords = words.slice(splitIdx);
+
+  // Clean up "AT" from role or company
+  if (roleWords[roleWords.length - 1]?.toLowerCase() === 'at') {
+    roleWords.pop();
+  } else if (companyWords[0]?.toLowerCase() === 'at') {
+    companyWords.shift();
+  }
+
+  const role = roleWords.map(toTitleCase).join(' ');
+  const company = companyWords.map(toTitleCase).join(' ');
 
   return company
-    ? `Applicant List || ${role} || ${company}`
-    : `Applicant List || ${role}`;
+    ? `Applicant List II ${company} II ${role}`
+    : `Applicant List II ${role}`;
 }
 
-function parseFile(buffer: ArrayBuffer): { title: string; applicants: ApplicantRow[] } {
+function parseFile(buffer: ArrayBuffer): { title: string; applicants: ApplicantRow[]; allHeaders: string[] } {
   const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as unknown[][];
 
-  const rawTitle = String((rows[1] as unknown[])?.[1] ?? '');
+  // Find header row first to know where the table starts
+  let headerRowIdx = -1;
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const row = (rows[i] as unknown[] || []).map(h => String(h).toLowerCase());
+    if (row.includes('name') && (row.includes('roll no') || row.includes('roll number'))) {
+      headerRowIdx = i;
+      break;
+    }
+  }
+
+  // Try to find title in rows ABOVE the header row
+  let rawTitle = '';
+  const searchLimit = headerRowIdx !== -1 ? headerRowIdx : 10;
+  for (let i = 0; i < searchLimit; i++) {
+    const row = rows[i] as unknown[];
+    if (!row) continue;
+    
+    const potentialTitle = row.find(cell => {
+      const s = String(cell).toUpperCase();
+      return (s.includes('LIST') || s.includes('FOR')) && 
+             (s.includes('INTERN') || s.includes('PLACEMENT') || s.includes('ROLE'));
+    });
+    
+    if (potentialTitle) {
+      rawTitle = String(potentialTitle);
+      break;
+    }
+  }
+  
+  // Fallback to rows[1][1] if no title found with keywords
+  if (!rawTitle && rows[1]) {
+    rawTitle = String((rows[1] as unknown[])?.[1] ?? '');
+  }
+
   const title = rawTitle ? extractTitle(rawTitle) : 'Applicant List';
 
-  const headerRow = (rows[3] as unknown[]).map(h => String(h));
+  if (headerRowIdx === -1) {
+    throw new Error('Could not find header row with "Name" and "Roll No"');
+  }
+
+  const headerRow = (rows[headerRowIdx] as unknown[]).map(h => String(h).trim());
+  const allHeaders = headerRow.filter(h => h !== '');
+
   const findIdx = (name: string) =>
-    headerRow.findIndex(h => h.trim().toLowerCase() === name.toLowerCase());
+    headerRow.findIndex(h => h.trim().toLowerCase() === name.toLowerCase() || 
+                           (name === 'Roll No' && h.trim().toLowerCase() === 'roll number'));
 
   const sNoIdx = findIdx('S.No.');
   const nameIdx = findIdx('Name');
@@ -89,91 +162,167 @@ function parseFile(buffer: ArrayBuffer): { title: string; applicants: ApplicantR
   const programIdx = findIdx('Program');
 
   const applicants: ApplicantRow[] = [];
-  for (let i = 4; i < rows.length; i++) {
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
     const row = rows[i] as unknown[];
     const sNoRaw = row[sNoIdx];
-    if (sNoRaw === '' || sNoRaw === null || sNoRaw === undefined) continue;
-    if (isNaN(Number(sNoRaw))) continue;
+    const nameRaw = row[nameIdx];
+    
+    // Skip if S.No is missing or not a number, but check if name exists to be sure
+    if ((sNoRaw === '' || sNoRaw === null || sNoRaw === undefined || isNaN(Number(sNoRaw))) && !nameRaw) continue;
 
     const course = String(row[courseIdx] ?? '').trim();
+    
+    // Create a map of header to value for rawRow
+    const rawRow: Record<string, any> = {};
+    headerRow.forEach((header, idx) => {
+      if (header) rawRow[header] = row[idx];
+    });
+
     applicants.push({
-      sNo: Number(sNoRaw),
-      name: String(row[nameIdx] ?? '').trim(),
+      sNo: Number(sNoRaw) || 0,
+      name: String(nameRaw ?? '').trim(),
       rollNo: String(row[rollIdx] ?? '').trim(),
       program: normalizeProgram(course, String(row[programIdx] ?? '').trim()),
       course,
+      rawRow,
     });
   }
 
   applicants.sort((a, b) => {
-    const ao = COURSE_ORDER[a.course] ?? 99;
-    const bo = COURSE_ORDER[b.course] ?? 99;
+    const ac = a.course.toLowerCase();
+    const bc = b.course.toLowerCase();
+    
+    let ao = 99;
+    if (ac.includes('commerce')) ao = 1;
+    else if (ac.includes('economics')) ao = 2;
+    
+    let bo = 99;
+    if (bc.includes('commerce')) bo = 1;
+    else if (bc.includes('economics')) bo = 2;
+
     if (ao !== bo) return ao - bo;
     return a.name.localeCompare(b.name);
   });
 
   applicants.forEach((ap, i) => { ap.sNo = i + 1; });
 
-  return { title, applicants };
+  return { title, applicants, allHeaders };
 }
 
 const TITLE_STYLE = {
-  font: { name: 'Trebuchet MS', sz: 10, bold: true, color: { rgb: 'FFFFFFFF' } },
-  fill: { patternType: 'solid', fgColor: { rgb: 'FFF5F5F5' } },
+  font: { name: 'Trebuchet MS', sz: 12, bold: true, color: { rgb: '000000' } },
+  fill: { fgColor: { rgb: 'B8CCE4' } },
   alignment: { horizontal: 'center', vertical: 'center' },
-  border: { bottom: { style: 'thin', color: { rgb: 'FF000000' } } },
+  border: {
+    top: { style: 'thin', color: { rgb: '000000' } },
+    bottom: { style: 'thin', color: { rgb: '000000' } },
+    left: { style: 'thin', color: { rgb: '000000' } },
+    right: { style: 'thin', color: { rgb: '000000' } }
+  }
 };
 
 const HEADER_STYLE = {
-  font: { name: 'Trebuchet MS', sz: 10, bold: true, color: { rgb: 'FFFFFFFF' } },
-  fill: { patternType: 'solid', fgColor: { rgb: 'FF1B3055' } },
+  font: { name: 'Trebuchet MS', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+  fill: { fgColor: { rgb: '1B3055' } },
   alignment: { horizontal: 'center', vertical: 'center' },
+  border: {
+    top: { style: 'thin', color: { rgb: '000000' } },
+    bottom: { style: 'thin', color: { rgb: '000000' } },
+    left: { style: 'thin', color: { rgb: '000000' } },
+    right: { style: 'thin', color: { rgb: '000000' } }
+  }
 };
 
 const DATA_STYLE = {
-  font: { name: 'Trebuchet MS', sz: 9, bold: false, color: { rgb: 'FF000000' } },
+  font: { name: 'Trebuchet MS', sz: 9, bold: false, color: { rgb: '000000' } },
   alignment: { horizontal: 'center', vertical: 'center', wrapText: false },
+  border: {
+    top: { style: 'thin', color: { rgb: '000000' } },
+    bottom: { style: 'thin', color: { rgb: '000000' } },
+    left: { style: 'thin', color: { rgb: '000000' } },
+    right: { style: 'thin', color: { rgb: '000000' } }
+  }
 };
 
 function styleCell(ws: XLSX.WorkSheet, addr: string, style: object) {
-  const cell = ws[addr];
-  if (cell) (cell as Record<string, unknown>).s = style;
+  if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+  ws[addr].s = style;
 }
 
-function buildWorkbook(title: string, applicants: ApplicantRow[]): XLSX.WorkBook {
+function buildWorkbook(title: string, applicants: ApplicantRow[], customColumns: string[] = []): XLSX.WorkBook {
+  const headers = ['S.No.', 'Name', 'Roll No', 'Program', ...customColumns];
   const aoa: unknown[][] = [
-    ['', '', '', '', ''],
-    ['', title, '', '', ''],
-    ['', 'S.No.', 'Name', 'Roll No', 'Program'],
-    ...applicants.map(ap => ['', ap.sNo, ap.name, ap.rollNo, ap.program]),
+    Array(headers.length + 1).fill(''),
+    ['', title, ...Array(headers.length - 1).fill('')],
+    ['', ...headers],
+    ...applicants.map(ap => [
+      '', 
+      ap.sNo, 
+      ap.name, 
+      ap.rollNo, 
+      ap.program,
+      ...customColumns.map(col => ap.rawRow[col] ?? '')
+    ]),
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  ws['!cols'] = [
-    { wch: 3.71 },
-    { wch: 7.14 },
-    { wch: 38.71 },
-    { wch: 10.14 },
-    { wch: 20.71 },
-  ];
+  // AutoFit calculation
+  const wscols = headers.map((header, i) => {
+    const colIdx = i + 1; // Headers start from column B
+    let maxLen = header.length;
+    
+    // Check all data rows for this column
+    applicants.forEach(ap => {
+      let val = '';
+      if (header === 'S.No.') val = String(ap.sNo);
+      else if (header === 'Name') val = ap.name;
+      else if (header === 'Roll No') val = ap.rollNo;
+      else if (header === 'Program') val = ap.program;
+      else val = String(ap.rawRow[header] ?? '');
+      
+      if (val.length > maxLen) maxLen = val.length;
+    });
 
-  ws['!merges'] = [{ s: { r: 1, c: 1 }, e: { r: 1, c: 4 } }];
+    // Padding and constraints
+    return { wch: Math.min(Math.max(maxLen + 4, 10), 50) };
+  });
 
-  styleCell(ws, 'B2', TITLE_STYLE);
+  // Prepend spacer column width (Column A)
+  ws['!cols'] = [{ wch: 3.71 }, ...wscols];
 
-  for (const col of ['B', 'C', 'D', 'E']) {
+  // Merges
+  ws['!merges'] = [{ s: { r: 1, c: 1 }, e: { r: 1, c: headers.length } }];
+
+  // Hide gridlines (Standard SheetJS property)
+  ws['!views'] = [{ showGridLines: false }];
+
+  // Styling
+  const colLetters = headers.map((_, i) => String.fromCharCode(66 + i)); // B, C, D, ...
+  
+  // Title row styling
+  colLetters.forEach(col => {
+    styleCell(ws, `${col}2`, TITLE_STYLE);
+  });
+
+  // Header row styling
+  colLetters.forEach(col => {
     styleCell(ws, `${col}3`, HEADER_STYLE);
-  }
+  });
 
+  // Data rows styling
   for (let i = 0; i < applicants.length; i++) {
     const rowNum = i + 4;
-    for (const col of ['B', 'C', 'D', 'E']) {
+    colLetters.forEach(col => {
       styleCell(ws, `${col}${rowNum}`, DATA_STYLE);
-    }
+    });
   }
 
   const workbook = XLSX.utils.book_new();
+  // Also hide gridlines at the workbook level for some Excel versions
+  workbook.Workbook = {
+    Views: [{ showGridLines: false }]
+  };
   XLSX.utils.book_append_sheet(workbook, ws, 'Applicant List');
   return workbook;
 }
@@ -186,6 +335,9 @@ const ExcelFormatterTool: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [applicants, setApplicants] = useState<ApplicantRow[]>([]);
+  const [allHeaders, setAllHeaders] = useState<string[]>([]);
+  const [selectedHeaders, setSelectedHeaders] = useState<string[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [inputFileName, setInputFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,9 +350,10 @@ const ExcelFormatterTool: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const { title, applicants } = parseFile(e.target!.result as ArrayBuffer);
+        const { title, applicants, allHeaders } = parseFile(e.target!.result as ArrayBuffer);
         setTitle(title);
         setApplicants(applicants);
+        setAllHeaders(allHeaders);
         setInputFileName(file.name);
         setToolState('preview');
       } catch (err) {
@@ -218,8 +371,8 @@ const ExcelFormatterTool: React.FC = () => {
   }, [processFile]);
 
   const handleDownload = () => {
-    const wb = buildWorkbook(title, applicants);
-    const outName = inputFileName.replace(/\.xlsx$/i, '_formatted.xlsx');
+    const wb = buildWorkbook(title, applicants, selectedHeaders);
+    const outName = `${title}.xlsx`;
     XLSX.writeFile(wb, outName, { bookType: 'xlsx', cellStyles: true });
     setToolState('done');
   };
@@ -228,9 +381,21 @@ const ExcelFormatterTool: React.FC = () => {
     setToolState('idle');
     setTitle('');
     setApplicants([]);
+    setAllHeaders([]);
+    setSelectedHeaders([]);
     setInputFileName('');
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const availableHeaders = allHeaders.filter(h => 
+    !['s.no.', 'name', 'roll no', 'roll number', 'course', 'program'].includes(h.toLowerCase())
+  );
+
+  const toggleHeader = (header: string) => {
+    setSelectedHeaders(prev => 
+      prev.includes(header) ? prev.filter(h => h !== header) : [...prev, header]
+    );
   };
 
   return (
@@ -309,19 +474,29 @@ const ExcelFormatterTool: React.FC = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ backgroundColor: '#1B3055', color: '#FFFFFF' }}>
-                    <th className="px-3 py-2 text-center font-semibold w-16">S.No.</th>
-                    <th className="px-3 py-2 text-center font-semibold">Name</th>
-                    <th className="px-3 py-2 text-center font-semibold w-28">Roll No</th>
-                    <th className="px-3 py-2 text-center font-semibold w-44">Program</th>
+                    <th className="px-3 py-2 text-center font-semibold w-16 border-r border-white/20">S.No.</th>
+                    <th className="px-3 py-2 text-center font-semibold border-r border-white/20">Name</th>
+                    <th className="px-3 py-2 text-center font-semibold w-28 border-r border-white/20">Roll No</th>
+                    <th className="px-3 py-2 text-center font-semibold w-44 border-r border-white/20">Program</th>
+                    {selectedHeaders.map(header => (
+                      <th key={header} className="px-3 py-2 text-center font-semibold border-r border-white/20 min-w-[120px]">
+                        {header}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {applicants.slice(0, 5).map((ap) => (
                     <tr key={ap.sNo} className="border-t border-grey-100 even:bg-grey-50">
-                      <td className="px-3 py-2 text-center text-grey-500">{ap.sNo}</td>
-                      <td className="px-3 py-2 text-center text-grey-900">{ap.name}</td>
-                      <td className="px-3 py-2 text-center text-grey-600">{ap.rollNo}</td>
-                      <td className="px-3 py-2 text-center text-grey-600">{ap.program}</td>
+                      <td className="px-3 py-2 text-center text-grey-500 border-r border-grey-100">{ap.sNo}</td>
+                      <td className="px-3 py-2 text-center text-grey-900 border-r border-grey-100">{ap.name}</td>
+                      <td className="px-3 py-2 text-center text-grey-600 border-r border-grey-100">{ap.rollNo}</td>
+                      <td className="px-3 py-2 text-center text-grey-600 border-r border-grey-100">{ap.program}</td>
+                      {selectedHeaders.map(header => (
+                        <td key={header} className="px-3 py-2 text-center text-grey-600 border-r border-grey-100">
+                          {ap.rawRow[header] ?? '-'}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
@@ -335,7 +510,23 @@ const ExcelFormatterTool: React.FC = () => {
           </Card>
 
           <div className="flex gap-3">
-            <Button onClick={handleDownload}>Download Formatted File</Button>
+            <div className="inline-flex rounded-lg overflow-hidden shadow-sm">
+              <Button 
+                onClick={handleDownload}
+                className="rounded-r-none border-r border-white/10"
+              >
+                Download Formatted File
+              </Button>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="bg-navy hover:bg-navy-light text-white px-3 flex items-center transition-colors border-l border-white/10"
+                title="Custom Columns"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
             <Button variant="ghost" onClick={reset}>Upload Another</Button>
           </div>
         </div>
@@ -358,6 +549,41 @@ const ExcelFormatterTool: React.FC = () => {
           </div>
         </Card>
       )}
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Customise Columns"
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-grey-500">
+            Select additional columns from the original file to include in the formatted export.
+          </p>
+          
+          <div className="max-h-60 overflow-y-auto border border-grey-200 rounded-lg p-3 space-y-2">
+            {availableHeaders.length > 0 ? (
+              availableHeaders.map(header => (
+                <label key={header} className="flex items-center gap-3 p-2 hover:bg-grey-50 rounded cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={selectedHeaders.includes(header)}
+                    onChange={() => toggleHeader(header)}
+                    className="w-4 h-4 text-navy border-grey-300 rounded focus:ring-navy"
+                  />
+                  <span className="text-sm text-grey-700">{header}</span>
+                </label>
+              ))
+            ) : (
+              <p className="text-sm text-grey-400 text-center py-4">No additional columns found.</p>
+            )}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => setIsModalOpen(false)}>Done</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
