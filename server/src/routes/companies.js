@@ -4,20 +4,9 @@ import { getDb, verifyRequest, getCurrentUserData } from '../middleware/auth.js'
 const router = Router();
 router.use(verifyRequest);
 
-function getAcademicYear() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  if (month >= 6) {
-    return `${year}-${year + 1}`;
-  }
-  return `${year - 1}-${year}`;
-}
-
-function generateLabel(scEmail, companyName) {
-  const year = getAcademicYear().replace('-', '');
-  const cleanName = companyName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10).toUpperCase();
-  return `SRCC-${year}-${cleanName}`;
+async function getAcademicYear(db) {
+  const doc = await db.collection('settings').doc('academicYear').get();
+  return doc.exists ? doc.data().year : '2025-26';
 }
 
 router.get('/', async (req, res) => {
@@ -88,8 +77,10 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ error: 'Only senior coordinators can create companies' });
     }
 
-    const labelSc = generateLabel(req.user.email, name);
-    const labelCompany = `CC-${labelSc}`;
+    const year = await getAcademicYear(db);
+    const labelSc = `GRC ${year}/SCs/${userData.name}`;
+    const companyCategory = type === 'internship' ? 'Internship Companies' : 'Placement Companies';
+    const labelCompany = `GRC ${year}/${companyCategory}/${name}`;
 
     const companyData = {
       name,
@@ -209,6 +200,33 @@ router.post('/:id/revert-delegation', async (req, res) => {
   } catch (error) {
     console.error('Error reverting delegation:', error);
     res.status(500).json({ error: 'Failed to revert delegation' });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const db = getDb();
+    const companyRef = db.collection('companies').doc(id);
+    const companyDoc = await companyRef.get();
+
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const userData = await getCurrentUserData(req.user.email);
+    const company = companyDoc.data();
+
+    if (userData.role !== 'admin' && company.seniorCoordinatorEmail !== req.user.email) {
+      return res.status(403).json({ error: 'Only the assigned SC or an admin can delete this company' });
+    }
+
+    await companyRef.delete();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting company:', error);
+    res.status(500).json({ error: 'Failed to delete company' });
   }
 });
 

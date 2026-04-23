@@ -119,4 +119,47 @@ export async function fetchCCWithdrawalEmails() {
   return withdrawalEmails;
 }
 
+export async function fetchCompanyEmails(company) {
+  const gmail = getGmailClient();
+
+  const labelsRes = await gmail.users.labels.list({ userId: 'me' });
+  const allLabels = labelsRes.data.labels || [];
+
+  const scLabel = allLabels.find((l) => l.name === company.labelSc);
+  const companyLabel = allLabels.find((l) => l.name === company.labelCompany);
+
+  if (!scLabel || !companyLabel) {
+    return [];
+  }
+
+  const messagesRes = await gmail.users.messages.list({
+    userId: 'me',
+    labelIds: [scLabel.id, companyLabel.id],
+    maxResults: 50,
+  });
+
+  const messages = messagesRes.data.messages || [];
+  const emails = [];
+
+  for (const msg of messages) {
+    const message = await gmail.users.messages.get({
+      userId: 'me',
+      id: msg.id,
+      format: 'metadata',
+      metadataHeaders: ['From', 'Subject', 'Date'],
+    });
+
+    const headers = message.data.payload.headers;
+    emails.push({
+      id: message.data.id,
+      from: headers.find((h) => h.name === 'From')?.value || '',
+      subject: headers.find((h) => h.name === 'Subject')?.value || '',
+      date: headers.find((h) => h.name === 'Date')?.value || '',
+      snippet: message.data.snippet,
+    });
+  }
+
+  return emails;
+}
+
 export { getOAuth2Client };

@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { verifyRequest } from '../middleware/auth.js';
+import { fetchCompanyEmails } from '../services/gmailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,31 +33,6 @@ function getGmailClient() {
   return google.gmail({ version: 'v1', auth: oauth2Client });
 }
 
-function getAcademicYear() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  if (month >= 6) {
-    return `${year}-${year + 1}`;
-  }
-  return `${year - 1}-${year}`;
-}
-
-function detectYearFromSubject(subject) {
-  const patterns = [
-    /20\d{2}-20\d{2}/,
-    /20\d{2}\/\d{2}/,
-    /\d{4}/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = subject.match(pattern);
-    if (match) {
-      return match[0];
-    }
-  }
-  return getAcademicYear();
-}
 
 router.get('/connect-url', async (req, res) => {
   try {
@@ -143,67 +119,22 @@ router.get('/emails', async (req, res) => {
   try {
     const { companyId } = req.query;
 
+    if (!companyId) {
+      return res.status(400).json({ error: 'companyId is required' });
+    }
+
     if (!fs.existsSync(TOKEN_PATH)) {
       return res.status(400).json({ error: 'Gmail not connected' });
     }
 
-    const gmail = getGmailClient();
     const db = (await import('../middleware/auth.js')).getDb();
+    const companyDoc = await db.collection('companies').doc(companyId).get();
 
-    let labelName = null;
-    if (companyId) {
-      const companyRef = db.collection('companies').doc(companyId);
-      const companyDoc = await companyRef.get();
-      if (companyDoc.exists) {
-        labelName = companyDoc.data().labelSc;
-      }
+    if (!companyDoc.exists) {
+      return res.status(404).json({ error: 'Company not found' });
     }
 
-    const labelsRes = await gmail.users.labels.list({ userId: 'me' });
-    let targetLabel = labelsRes.data.labels.find((l) => l.name === 'CC-Withdrawal');
-
-    if (!targetLabel) {
-      targetLabel = labelsRes.data.labels.find((l) => l.name === labelName);
-    }
-
-    if (!targetLabel) {
-      return res.json([]);
-    }
-
-    const messagesRes = await gmail.users.messages.list({
-      userId: 'me',
-      labelIds: [targetLabel.id],
-      maxResults: 50,
-    });
-
-    const messages = messagesRes.data.messages || [];
-    const emails = [];
-
-    for (const msg of messages) {
-      const message = await gmail.users.messages.get({
-        userId: 'me',
-        id: msg.id,
-        format: 'metadata',
-        metadataHeaders: ['From', 'Subject', 'Date'],
-      });
-
-      const headers = message.data.payload.headers;
-      const from = headers.find((h) => h.name === 'From')?.value || '';
-      const subject = headers.find((h) => h.name === 'Subject')?.value || '';
-      const date = headers.find((h) => h.name === 'Date')?.value || '';
-      const year = detectYearFromSubject(subject);
-
-      emails.push({
-        id: message.data.id,
-        from,
-        subject,
-        date: new Date(date).toISOString(),
-        snippet: message.data.snippet,
-        year,
-        labelId: targetLabel.id,
-      });
-    }
-
+    const emails = await fetchCompanyEmails(companyDoc.data());
     res.json(emails);
   } catch (error) {
     console.error('Error fetching emails:', error);

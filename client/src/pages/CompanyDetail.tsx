@@ -22,6 +22,8 @@ const CompanyDetail: React.FC = () => {
   const [delegating, setDelegating] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<GmailEmail | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -84,6 +86,19 @@ const CompanyDetail: React.FC = () => {
     }
   };
 
+  const handleDeleteCompany = async () => {
+    if (!id) return;
+    setDeleting(true);
+    try {
+      await companyService.deleteCompany(id);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Failed to delete company:', error);
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   const handleRevertDelegation = async () => {
     if (!id) return;
     try {
@@ -142,6 +157,9 @@ const CompanyDetail: React.FC = () => {
             <Button variant="secondary" onClick={handleRefresh} disabled={refreshing}>
               {refreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
+            <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
+              Delete
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -195,7 +213,7 @@ const CompanyDetail: React.FC = () => {
               <Card className="text-center py-12">
                 <p className="text-grey-500">No emails in this company's inbox.</p>
                 <p className="text-sm text-grey-400 mt-1">
-                  Emails labeled with "{company.labelSc}" or "CC-Withdrawal" will appear here.
+                  Emails labeled with both &ldquo;{company.labelCompany}&rdquo; and &ldquo;{company.labelSc}&rdquo; in the GRC inbox will appear here.
                 </p>
               </Card>
             ) : (
@@ -252,6 +270,26 @@ const CompanyDetail: React.FC = () => {
             </Button>
             <Button variant="primary" onClick={handleDelegate} disabled={!selectedJc || delegating}>
               {delegating ? 'Delegating...' : 'Delegate'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Company"
+      >
+        <div className="space-y-4">
+          <p className="text-grey-700">
+            Are you sure you want to delete <span className="font-semibold">{company.name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteCompany} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete Company'}
             </Button>
           </div>
         </div>

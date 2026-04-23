@@ -20,6 +20,7 @@ const Dashboard: React.FC = () => {
   const [companyType, setCompanyType] = useState<'placement' | 'internship'>('placement');
   const [rounds, setRounds] = useState<{ name: string; date: string }[]>([{ name: '', date: '' }]);
   const [creating, setCreating] = useState(false);
+  const [createdLabels, setCreatedLabels] = useState<{ labelSc: string; labelCompany: string } | null>(null);
 
   useEffect(() => {
     loadData();
@@ -56,6 +57,7 @@ const Dashboard: React.FC = () => {
       setCompanyName('');
       setCompanyType('placement');
       setRounds([{ name: '', date: '' }]);
+      setCreatedLabels({ labelSc: company.labelSc, labelCompany: company.labelCompany });
       loadData();
     } catch (error) {
       console.error('Failed to create company:', error);
@@ -155,6 +157,29 @@ const Dashboard: React.FC = () => {
           )}
         </div>
       </main>
+
+      {createdLabels && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg bg-white border border-green-200 shadow-lg rounded-xl p-4">
+          <div className="flex justify-between items-start gap-4">
+            <div>
+              <p className="font-semibold text-grey-900 mb-2">
+                Company created. Ask GRC to apply these two labels to relevant emails:
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-sm font-mono text-grey-800">
+                <li>{createdLabels.labelSc}</li>
+                <li>{createdLabels.labelCompany}</li>
+              </ol>
+            </div>
+            <button
+              onClick={() => setCreatedLabels(null)}
+              className="text-grey-400 hover:text-grey-700 shrink-0 text-lg leading-none"
+              aria-label="Dismiss"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      )}
 
       <Modal
         isOpen={showCreateModal}

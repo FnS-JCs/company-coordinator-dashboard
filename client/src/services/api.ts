@@ -74,6 +74,10 @@ export const companyService = {
     const response = await api.post(`/companies/${id}/revert-delegation`);
     return response.data;
   },
+  async deleteCompany(id: string) {
+    const response = await api.delete(`/companies/${id}`);
+    return response.data;
+  },
 };
 
 export const gmailService = {
