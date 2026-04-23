@@ -48,3 +48,24 @@ body {
   padding: 0.5rem;
   border: 1px solid #e5e7eb;
 }
+
+.dark .email-body-container {
+  color: #e5e7eb;
+}
+
+.dark .email-body-container a {
+  color: #60a5fa;
+}
+
+.dark .email-body-container blockquote {
+  border-left-color: #4b5563;
+  color: #9ca3af;
+}
+
+.dark .email-body-container pre {
+  background-color: #1f2937;
+}
+
+.dark .email-body-container td {
+  border-color: #374151;
+}

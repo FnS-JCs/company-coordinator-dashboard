@@ -1,5 +1,6 @@
 import React, { lazy } from 'react';
 import { Route } from 'react-router-dom';
+import { ToolLayout } from '../components/ToolLayout';
 
 const tools = [
   {
@@ -25,8 +26,10 @@ export const toolRoutes = tools.map(({ path, component: Component }) => (
     key={path}
     path={path}
     element={
-      <React.Suspense fallback={<div>Loading...</div>}>
-        <Component />
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-gray-900 dark:text-gray-100">Loading...</div>}>
+        <ToolLayout>
+          <Component />
+        </ToolLayout>
       </React.Suspense>
     }
   />

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDb, verifyRequest, getCurrentUserData } from '../middleware/auth.js';
+import { getDb, verifyRequest, getCurrentUserData, isDevMode } from '../middleware/auth.js';
 
 const router = Router();
 router.use(verifyRequest);
@@ -215,7 +215,12 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Company not found' });
     }
 
-    const userData = await getCurrentUserData(req.user.email);
+    const userData = isDevMode() ? { role: req.user.role } : await getCurrentUserData(req.user.email);
+    
+    if (!userData) {
+      return res.status(404).json({ error: 'User data not found' });
+    }
+
     const company = companyDoc.data();
 
     if (userData.role !== 'admin' && company.seniorCoordinatorEmail !== req.user.email) {
