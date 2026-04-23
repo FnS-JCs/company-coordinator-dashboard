@@ -7,14 +7,40 @@ let db;
 function initializeFirebase() {
   if (admin.apps.length > 0) return;
   
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-  db = admin.firestore();
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+    });
+    db = admin.firestore();
+  } catch (error) {
+    if (isDevMode()) {
+      console.warn('Firebase initialization failed, but continuing in DEV_AUTH_BYPASS mode');
+      // Mock db or let it be undefined if routes handle it
+      db = {
+        collection: () => ({
+          where: () => ({
+            limit: () => ({
+              get: async () => ({ empty: true, docs: [] })
+            }),
+            get: async () => ({ empty: true, docs: [] })
+          }),
+          doc: () => ({
+            get: async () => ({ exists: false }),
+            set: async () => {},
+            update: async () => {},
+            delete: async () => {}
+          }),
+          add: async (data) => ({ id: 'mock-id-' + Math.random().toString(36).substr(2, 9), ...data }),
+        })
+      };
+    } else {
+      throw error;
+    }
+  }
 }
 
 initializeFirebase();
@@ -90,7 +116,17 @@ export async function requireAdmin(req, res, next) {
   res.status(403).json({ error: 'Admin access required' });
 }
 
-export async function getCurrentUserData(email) {
+export async function getCurrentUserData(req, email) {
+  if (isDevMode()) {
+    const devRole = req.headers['x-dev-role'] || 'senior_coordinator';
+    return {
+      uid: 'dev-user',
+      email: email,
+      role: devRole,
+      name: email.split('@')[0],
+    };
+  }
+
   const db = getDb();
   const usersRef = db.collection('users');
   const snapshot = await usersRef.where('email', '==', email).limit(1).get();

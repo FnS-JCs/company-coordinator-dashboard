@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     const db = getDb();
     const companiesRef = db.collection('companies');
     
-    const userData = await getCurrentUserData(req.user.email);
+    const userData = await getCurrentUserData(req, req.user.email);
     if (!userData) {
       return res.status(403).json({ error: 'User not found in database' });
     }
@@ -71,7 +71,7 @@ router.post('/', async (req, res) => {
     }
 
     const db = getDb();
-    const userData = await getCurrentUserData(req.user.email);
+    const userData = await getCurrentUserData(req, req.user.email);
 
     if (!userData || userData.role !== 'senior_coordinator') {
       return res.status(403).json({ error: 'Only senior coordinators can create companies' });
