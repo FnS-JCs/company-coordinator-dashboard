@@ -124,6 +124,9 @@ router.get('/emails', async (req, res) => {
     }
 
     if (!fs.existsSync(TOKEN_PATH)) {
+      if (process.env.DEV_AUTH_BYPASS === 'true') {
+        return res.json([]);
+      }
       return res.status(400).json({ error: 'Gmail not connected' });
     }
 
@@ -147,6 +150,9 @@ router.get('/emails/:messageId', async (req, res) => {
     const { messageId } = req.params;
 
     if (!fs.existsSync(TOKEN_PATH)) {
+      if (process.env.DEV_AUTH_BYPASS === 'true') {
+        return res.json({ id: messageId, subject: 'Mock Email', from: 'dev@example.com', body: 'This is a mock email body for development.' });
+      }
       return res.status(400).json({ error: 'Gmail not connected' });
     }
 
@@ -183,6 +189,9 @@ router.post('/mark-read', async (req, res) => {
     const { messageId, companyId } = req.body;
 
     if (!fs.existsSync(TOKEN_PATH)) {
+      if (process.env.DEV_AUTH_BYPASS === 'true') {
+        return res.json({ success: true });
+      }
       return res.status(400).json({ error: 'Gmail not connected' });
     }
 

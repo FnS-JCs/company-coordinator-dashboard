@@ -43,14 +43,33 @@ const CompanyDetail: React.FC = () => {
   const loadData = async () => {
     if (!id) return;
     try {
-      const [companyData, emailsData, usersData] = await Promise.all([
-        companyService.getCompany(id),
+      // Load company data first as it's critical
+      try {
+        const companyData = await companyService.getCompany(id);
+        setCompany(companyData);
+      } catch (err) {
+        console.error('Failed to load company:', err);
+        setLoading(false);
+        return;
+      }
+
+      // Load other data in parallel
+      const [emailsData, usersData] = await Promise.allSettled([
         gmailService.getEmails(id),
         userService.getUsers(),
       ]);
-      setCompany(companyData);
-      setEmails(emailsData);
-      setJcUsers(usersData.filter((u: User) => u.role === 'junior_coordinator'));
+
+      if (emailsData.status === 'fulfilled') {
+        setEmails(emailsData.value);
+      } else {
+        console.error('Failed to load emails:', emailsData.reason);
+      }
+
+      if (usersData.status === 'fulfilled') {
+        setJcUsers(usersData.value.filter((u: User) => u.role === 'junior_coordinator'));
+      } else {
+        console.error('Failed to load users:', usersData.reason);
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {

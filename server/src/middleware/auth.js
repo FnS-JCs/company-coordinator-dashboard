@@ -4,6 +4,15 @@ dotenv.config();
 
 let db;
 
+// In-memory store for dev mode
+const mockStore = {
+  companies: [],
+  users: [],
+  settings: {
+    academicYear: { year: '2025-26' }
+  }
+};
+
 function initializeFirebase() {
   if (admin.apps.length > 0) return;
   
@@ -19,22 +28,75 @@ function initializeFirebase() {
   } catch (error) {
     if (isDevMode()) {
       console.warn('Firebase initialization failed, but continuing in DEV_AUTH_BYPASS mode');
-      // Mock db or let it be undefined if routes handle it
+      // Mock db that persists in mockStore
       db = {
-        collection: () => ({
-          where: () => ({
+        collection: (colName) => ({
+          where: (field, op, value) => ({
             limit: () => ({
-              get: async () => ({ empty: true, docs: [] })
+              get: async () => {
+                const docs = (mockStore[colName] || [])
+                  .filter(item => item[field] === value)
+                  .map(item => ({ id: item.id || 'mock-id', data: () => item }));
+                return { empty: docs.length === 0, docs };
+              }
             }),
-            get: async () => ({ empty: true, docs: [] })
+            get: async () => {
+              const docs = (mockStore[colName] || [])
+                .filter(item => item[field] === value)
+                .map(item => ({ id: item.id || 'mock-id', data: () => item }));
+              return { empty: docs.length === 0, docs };
+            }
           }),
-          doc: () => ({
-            get: async () => ({ exists: false }),
-            set: async () => {},
-            update: async () => {},
-            delete: async () => {}
+          doc: (docId) => ({
+            get: async () => {
+              let data;
+              if (Array.isArray(mockStore[colName])) {
+                data = mockStore[colName].find(item => item.id === docId);
+              } else {
+                data = mockStore[colName]?.[docId];
+              }
+              return { exists: !!data, data: () => data };
+            },
+            set: async (data) => {
+              if (Array.isArray(mockStore[colName])) {
+                const idx = mockStore[colName].findIndex(item => item.id === docId);
+                if (idx !== -1) mockStore[colName][idx] = { ...data, id: docId };
+                else mockStore[colName].push({ ...data, id: docId });
+              } else {
+                if (!mockStore[colName]) mockStore[colName] = {};
+                mockStore[colName][docId] = data;
+              }
+            },
+            update: async (data) => {
+              let item;
+              if (Array.isArray(mockStore[colName])) {
+                item = mockStore[colName].find(i => i.id === docId);
+              } else {
+                item = mockStore[colName]?.[docId];
+              }
+              if (item) Object.assign(item, data);
+            },
+            delete: async () => {
+              if (Array.isArray(mockStore[colName])) {
+                mockStore[colName] = mockStore[colName].filter(i => i.id !== docId);
+              } else if (mockStore[colName]) {
+                delete mockStore[colName][docId];
+              }
+            }
           }),
-          add: async (data) => ({ id: 'mock-id-' + Math.random().toString(36).substr(2, 9), ...data }),
+          add: async (data) => {
+            if (!mockStore[colName]) mockStore[colName] = [];
+            const newItem = { id: 'mock-' + Math.random().toString(36).substr(2, 9), ...data };
+            mockStore[colName].push(newItem);
+            return { id: newItem.id };
+          },
+          get: async () => {
+            const items = mockStore[colName] || [];
+            const docs = Array.isArray(items) 
+              ? items.map(item => ({ id: item.id, data: () => item }))
+              : Object.entries(items).map(([id, data]) => ({ id, data: () => data }));
+            return { docs };
+          }
         })
       };
     } else {
@@ -60,6 +122,13 @@ export function isDevMode() {
 
 export async function verifyRequest(req, res, next) {
   if (isDevMode()) {
+    // Check if it's an OAuth callback - allow it without headers
+    // Using originalUrl to handle cases where middleware is inside a router
+    const fullPath = req.originalUrl.split('?')[0];
+    if (fullPath === '/api/gmail/oauth/callback') {
+      return next();
+    }
+
     // Exception for attachment downloads in dev mode (since they are direct browser requests)
     if (req.path.includes('/attachments/') && req.method === 'GET') {
       req.user = {
@@ -81,6 +150,7 @@ export async function verifyRequest(req, res, next) {
       };
       return next();
     }
+
     return res.status(401).json({ error: 'Dev mode: missing X-Dev-Role or X-Dev-Email header' });
   }
 

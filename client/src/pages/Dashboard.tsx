@@ -21,6 +21,7 @@ const Dashboard: React.FC = () => {
   const [rounds, setRounds] = useState<{ name: string; date: string }[]>([{ name: '', date: '' }]);
   const [creating, setCreating] = useState(false);
   const [createdLabels, setCreatedLabels] = useState<{ labelSc: string; labelCompany: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'placement' | 'internship'>('placement');
 
   useEffect(() => {
     loadData();
@@ -44,6 +45,8 @@ const Dashboard: React.FC = () => {
   const placementCompanies = companies.filter((c) => c.type === 'placement');
   const internshipCompanies = companies.filter((c) => c.type === 'internship');
 
+  const displayedCompanies = activeTab === 'placement' ? placementCompanies : internshipCompanies;
+
   const handleCreateCompany = async () => {
     if (!companyName.trim()) return;
     setCreating(true);
@@ -58,6 +61,7 @@ const Dashboard: React.FC = () => {
       setCompanyType('placement');
       setRounds([{ name: '', date: '' }]);
       setCreatedLabels({ labelSc: company.labelSc, labelCompany: company.labelCompany });
+      setActiveTab(companyType); // Switch to the tab of the created company
       loadData();
     } catch (error) {
       console.error('Failed to create company:', error);
@@ -99,61 +103,57 @@ const Dashboard: React.FC = () => {
             <Badge>{academicYear}</Badge>
           </div>
 
-          {placementCompanies.length === 0 && internshipCompanies.length === 0 ? (
+          <div className="flex border-b border-grey-200 mb-6">
+            <button
+              onClick={() => setActiveTab('placement')}
+              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'placement'
+                  ? 'text-navy border-b-2 border-navy'
+                  : 'text-grey-500 hover:text-grey-700'
+              }`}
+            >
+              Placement ({placementCompanies.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('internship')}
+              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+                activeTab === 'internship'
+                  ? 'text-navy border-b-2 border-navy'
+                  : 'text-grey-500 hover:text-grey-700'
+              }`}
+            >
+              Internship ({internshipCompanies.length})
+            </button>
+          </div>
+
+          {displayedCompanies.length === 0 ? (
             <Card className="text-center py-12">
-              <p className="text-grey-500">No companies assigned yet. Contact your coordinator.</p>
+              <p className="text-grey-500">No {activeTab} companies assigned yet. Contact your coordinator.</p>
             </Card>
           ) : (
-            <>
-              {placementCompanies.length > 0 && (
-                <div className="mb-8">
-                  <h2 className="text-lg font-semibold text-grey-900 mb-4">Placement Companies</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {placementCompanies.map((company) => (
-                      <Card
-                        key={company.id}
-                        onClick={() => navigate(`/dashboard/company/${company.id}`)}
-                        className="relative"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-grey-900">{company.name}</h3>
-                          <Badge variant="success">Placement</Badge>
-                        </div>
-                        <p className="text-sm text-grey-500">{company.rounds.length} rounds</p>
-                        {company.delegatedToJcEmail && (
-                          <p className="text-xs text-grey-500 mt-1">
-                            Delegated to JC
-                          </p>
-                        )}
-                        <p className="text-navy text-sm font-medium mt-3">Open</p>
-                      </Card>
-                    ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {displayedCompanies.map((company) => (
+                <Card
+                  key={company.id}
+                  onClick={() => navigate(`/dashboard/company/${company.id}`)}
+                  className="relative"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-grey-900">{company.name}</h3>
+                    <Badge variant={company.type === 'placement' ? 'success' : 'warning'}>
+                      {company.type === 'placement' ? 'Placement' : 'Internship'}
+                    </Badge>
                   </div>
-                </div>
-              )}
-
-              {internshipCompanies.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold text-grey-900 mb-4">Internship Companies</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {internshipCompanies.map((company) => (
-                      <Card
-                        key={company.id}
-                        onClick={() => navigate(`/dashboard/company/${company.id}`)}
-                        className="relative"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-grey-900">{company.name}</h3>
-                          <Badge variant="warning">Internship</Badge>
-                        </div>
-                        <p className="text-sm text-grey-500">{company.rounds.length} rounds</p>
-                        <p className="text-navy text-sm font-medium mt-3">Open</p>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
+                  <p className="text-sm text-grey-500">{company.rounds.length} rounds</p>
+                  {company.delegatedToJcEmail && (
+                    <p className="text-xs text-grey-500 mt-1">
+                      Delegated to JC
+                    </p>
+                  )}
+                  <p className="text-navy text-sm font-medium mt-3">Open</p>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       </main>
