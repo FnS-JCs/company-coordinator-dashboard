@@ -1,25 +1,26 @@
-import admin from 'firebase-admin'
-import dotenv from 'dotenv'
-dotenv.config()
+import { getFirestore } from '../middleware/auth.js';
+import admin from 'firebase-admin';
+import dotenv from 'dotenv';
+dotenv.config();
 
-let db
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  }),
+});
 
 export function initializeFirebase() {
+  if (admin.apps.length > 0) return;
   admin.initializeApp({
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-    })
-  })
-  db = admin.firestore()
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
 }
 
-export function getDb() {
-  if (!db) throw new Error('Firebase not initialized')
-  return db
-}
-
-export function getFirestore() {
-  return db
-}
+initializeFirebase();
+export { admin };

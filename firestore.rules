@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/settings/admin).data.email == request.auth.token.email;
+    }
+
+    function isValidUser() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isSeniorCoordinator() {
+      return isValidUser() && getUserRole() == 'senior_coordinator';
+    }
+
+    function isJuniorCoordinator() {
+      return isValidUser() && getUserRole() == 'junior_coordinator';
+    }
+
+    // Users collection
+    match /users/{uid} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Companies collection
+    match /companies/{companyId} {
+      allow read: if isValidUser() && (
+        (isSeniorCoordinator() && resource.data.seniorCoordinatorEmail == request.auth.token.email) ||
+        (isJuniorCoordinator() && resource.data.delegatedToJcEmail == request.auth.token.email)
+      );
+      allow create: if isSeniorCoordinator();
+      allow update, delete: if isSeniorCoordinator() && resource.data.seniorCoordinatorEmail == request.auth.token.email;
+    }
+
+    // Email read status
+    match /emailReadStatus/{docId} {
+      allow read, write: if isValidUser();
+    }
+
+    // Settings collection
+    match /settings/{settingId} {
+      allow read: if isValidUser();
+      allow write: if isAdmin();
+    }
+  }
+}

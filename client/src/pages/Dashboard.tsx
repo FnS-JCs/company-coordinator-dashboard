@@ -1,76 +1,253 @@
-import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Sidebar } from '../components/Sidebar';
+import { Card } from '../components/Card';
+import { Badge } from '../components/Badge';
+import { Modal } from '../components/Modal';
+import { Button } from '../components/Button';
+import { companyService, settingsService } from '../services/api';
+import type { Company } from '../types';
 
-export default function Dashboard() {
-  const { user } = useAuth()
+const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [academicYear, setAcademicYear] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [companyType, setCompanyType] = useState<'placement' | 'internship'>('placement');
+  const [rounds, setRounds] = useState<{ name: string; date: string }[]>([{ name: '', date: '' }]);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [companiesData, yearData] = await Promise.all([
+        companyService.getCompanies(),
+        settingsService.getAcademicYear(),
+      ]);
+      setCompanies(companiesData);
+      setAcademicYear(yearData.year);
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const placementCompanies = companies.filter((c) => c.type === 'placement');
+  const internshipCompanies = companies.filter((c) => c.type === 'internship');
+
+  const handleCreateCompany = async () => {
+    if (!companyName.trim()) return;
+    setCreating(true);
+    try {
+      const company = await companyService.createCompany({
+        name: companyName,
+        type: companyType,
+        rounds: rounds.filter((r) => r.name.trim() && r.date.trim()),
+      });
+      setShowCreateModal(false);
+      setCompanyName('');
+      setCompanyType('placement');
+      setRounds([{ name: '', date: '' }]);
+      loadData();
+    } catch (error) {
+      console.error('Failed to create company:', error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const addRound = () => {
+    setRounds([...rounds, { name: '', date: '' }]);
+  };
+
+  const updateRound = (index: number, field: 'name' | 'date', value: string) => {
+    const updated = [...rounds];
+    updated[index][field] = value;
+    setRounds(updated);
+  };
+
+  const removeRound = (index: number) => {
+    setRounds(rounds.filter((_, i) => i !== index));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-grey-50 flex items-center justify-center">
+        <p className="text-grey-500">Loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold">SRCC Placement Cell</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">{user?.email}</span>
-              <span className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
-                {user?.role === 'senior_coordinator' ? 'Senior' : 'Junior'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-grey-50 flex">
+      <Sidebar onCreateCompany={() => setShowCreateModal(true)} />
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <h2 className="text-2xl font-semibold mb-6">Welcome, {user?.displayName}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link
-              to="/gmail-feed"
-              className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition"
-            >
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-5">
-                    <h3 className="text-lg font-medium text-gray-900">Gmail Withdrawal Feed</h3>
-                    <p className="mt-1 text-sm text-gray-500">Monitor company withdrawal notifications</p>
+      <main className="flex-1 p-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold text-grey-900">My Companies</h1>
+            <Badge>{academicYear}</Badge>
+          </div>
+
+          {placementCompanies.length === 0 && internshipCompanies.length === 0 ? (
+            <Card className="text-center py-12">
+              <p className="text-grey-500">No companies assigned yet. Contact your coordinator.</p>
+            </Card>
+          ) : (
+            <>
+              {placementCompanies.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-lg font-semibold text-grey-900 mb-4">Placement Companies</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {placementCompanies.map((company) => (
+                      <Card
+                        key={company.id}
+                        onClick={() => navigate(`/dashboard/company/${company.id}`)}
+                        className="relative"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold text-grey-900">{company.name}</h3>
+                          <Badge variant="success">Placement</Badge>
+                        </div>
+                        <p className="text-sm text-grey-500">{company.rounds.length} rounds</p>
+                        {company.delegatedToJcEmail && (
+                          <p className="text-xs text-grey-500 mt-1">
+                            Delegated to JC
+                          </p>
+                        )}
+                        <p className="text-navy text-sm font-medium mt-3">Open</p>
+                      </Card>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </Link>
+              )}
 
-            <Link
-              to="/whatsapp"
-              className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition"
-            >
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="ml-5">
-                    <h3 className="text-lg font-medium text-gray-900">WhatsApp Composer</h3>
-                    <p className="mt-1 text-sm text-gray-500">Send messages with acknowledgement tracking</p>
+              {internshipCompanies.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold text-grey-900 mb-4">Internship Companies</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {internshipCompanies.map((company) => (
+                      <Card
+                        key={company.id}
+                        onClick={() => navigate(`/dashboard/company/${company.id}`)}
+                        className="relative"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold text-grey-900">{company.name}</h3>
+                          <Badge variant="warning">Internship</Badge>
+                        </div>
+                        <p className="text-sm text-grey-500">{company.rounds.length} rounds</p>
+                        <p className="text-navy text-sm font-medium mt-3">Open</p>
+                      </Card>
+                    ))}
                   </div>
                 </div>
-              </div>
-            </Link>
-          </div>
+              )}
+            </>
+          )}
         </div>
       </main>
+
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create Company"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-grey-900 mb-1">Company Name</label>
+            <input
+              type="text"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="w-full px-3 py-2 border border-grey-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy"
+              placeholder="Enter company name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-grey-900 mb-1">Type</label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  checked={companyType === 'placement'}
+                  onChange={() => setCompanyType('placement')}
+                  className="mr-2"
+                />
+                Placement
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  checked={companyType === 'internship'}
+                  onChange={() => setCompanyType('internship')}
+                  className="mr-2"
+                />
+                Internship
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-grey-900 mb-1">Rounds</label>
+            {rounds.map((round, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={round.name}
+                  onChange={(e) => updateRound(index, 'name', e.target.value)}
+                  placeholder="Round name"
+                  className="flex-1 px-3 py-2 border border-grey-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy"
+                />
+                <input
+                  type="date"
+                  value={round.date}
+                  onChange={(e) => updateRound(index, 'date', e.target.value)}
+                  className="flex-1 px-3 py-2 border border-grey-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy"
+                />
+                {rounds.length > 1 && (
+                  <button
+                    onClick={() => removeRound(index)}
+                    className="text-red-500 hover:text-red-600"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              onClick={addRound}
+              className="text-navy text-sm hover:underline mt-2"
+            >
+              + Add Round
+            </button>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleCreateCompany}
+              disabled={!companyName.trim() || creating}
+            >
+              {creating ? 'Creating...' : 'Create Company'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
-  )
-}
+  );
+};
+
+export default Dashboard;
