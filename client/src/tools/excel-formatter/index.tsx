@@ -252,25 +252,28 @@ function styleCell(ws: XLSX.WorkSheet, addr: string, style: object) {
 
 function buildWorkbook(title: string, applicants: ApplicantRow[], customColumns: string[] = []): XLSX.WorkBook {
   const headers = ['S.No.', 'Name', 'Roll No', 'Program', ...customColumns];
+  const totalCols = headers.length + 2; // Col A (left) + Data + Col (right)
+  
   const aoa: unknown[][] = [
-    Array(headers.length + 1).fill(''),
-    ['', title, ...Array(headers.length - 1).fill('')],
-    ['', ...headers],
-    ...applicants.map(ap => [
+    Array(totalCols).fill(''), // Row 1: Top padding
+    ['', title, ...Array(totalCols - 2).fill('')], // Row 2: Title
+    ['', ...headers, ''], // Row 3: Headers + Right padding cell
+    ...applicants.map(ap => [ // Data rows
       '', 
       ap.sNo, 
       ap.name, 
       ap.rollNo, 
       ap.program,
-      ...customColumns.map(col => ap.rawRow[col] ?? '')
+      ...customColumns.map(col => ap.rawRow[col] ?? ''),
+      '' // Right padding cell
     ]),
+    Array(totalCols).fill(''), // Bottom padding row
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  // AutoFit calculation
+  // AutoFit calculation for data columns
   const wscols = headers.map((header, i) => {
-    const colIdx = i + 1; // Headers start from column B
     let maxLen = header.length;
     
     // Check all data rows for this column
@@ -289,13 +292,38 @@ function buildWorkbook(title: string, applicants: ApplicantRow[], customColumns:
     return { wch: Math.min(Math.max(maxLen + 4, 10), 50) };
   });
 
-  // Prepend spacer column width (Column A)
-  ws['!cols'] = [{ wch: 3.71 }, ...wscols];
+  // Setup column properties (widths and hidden status)
+  const finalCols: XLSX.ColInfo[] = [];
+  const hiddenCol = { hidden: true };
+  finalCols[0] = { wch: 3.71 }; // Column A: Left padding
+  wscols.forEach((wc, i) => {
+    finalCols[i + 1] = wc; // Data columns B, C, ...
+  });
+  finalCols[headers.length + 1] = { wch: 3.71 }; // Right padding column
+  
+  // HIDE ALL COLUMNS: Using a loop up to the absolute Excel limit (16384)
+  // 16,384 entries is small enough not to cause lag, but ensures all columns are hidden.
+  for (let i = headers.length + 2; i < 16384; i++) {
+    finalCols[i] = hiddenCol;
+  }
+  ws['!cols'] = finalCols;
+
+  // Setup row properties
+  // To hide ALL rows (1,048,576) without massive lag, we use an optimized array fill.
+  // Note: This will increase the file size (~10-15MB) because XLSX requires 
+  // an entry for every hidden row, but it achieves the "clean" look you requested.
+  const finalRows: XLSX.RowInfo[] = new Array(1048576);
+  const hiddenRow = { hidden: true };
+  const totalRowsInAoa = aoa.length;
+  
+  // Fill the hidden rows starting from after our data
+  finalRows.fill(hiddenRow, totalRowsInAoa);
+  ws['!rows'] = finalRows;
 
   // Merges
   ws['!merges'] = [{ s: { r: 1, c: 1 }, e: { r: 1, c: headers.length } }];
 
-  // Hide gridlines (Standard SheetJS property)
+  // Hide gridlines
   ws['!views'] = [{ showGridLines: false }];
 
   // Styling
@@ -320,7 +348,6 @@ function buildWorkbook(title: string, applicants: ApplicantRow[], customColumns:
   }
 
   const workbook = XLSX.utils.book_new();
-  // Also hide gridlines at the workbook level for some Excel versions
   workbook.Workbook = {
     Views: [{ showGridLines: false }]
   };
