@@ -92,7 +92,7 @@ const VCFGeneratorTool: React.FC = () => {
   const groupedContacts = useMemo(() => {
     const groups: Record<string, Contact[]> = {};
     contacts.forEach(contact => {
-      const companyKey = contact.company.trim() || 'Unknown Company';
+      const companyKey = contact.company.trim() || 'Unknown Details';
       if (!groups[companyKey]) {
         groups[companyKey] = [];
       }
@@ -182,7 +182,7 @@ const VCFGeneratorTool: React.FC = () => {
                     <th className="w-12 py-2 px-3 text-xs font-bold text-grey-400 dark:text-gray-500 text-center border-r border-grey-200 dark:border-gray-700">#</th>
                     <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Name</th>
                     {specifyRole && <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Role</th>}
-                    <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Company</th>
+                    <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Details</th>
                     <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Number</th>
                     <th className="w-10 py-2 px-3 border-grey-200 dark:border-gray-700"></th>
                   </tr>
@@ -217,7 +217,7 @@ const VCFGeneratorTool: React.FC = () => {
                           value={row.company}
                           onChange={(e) => handleGridChange(idx, 'company', e.target.value)}
                           className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-blue-500 outline-none bg-transparent text-grey-900 dark:text-gray-100 placeholder-grey-400 dark:placeholder-gray-500"
-                          placeholder="Company Name"
+                          placeholder="Extra Details"
                         />
                       </td>
                       <td className="p-0 border-r border-grey-100 dark:border-gray-700">
@@ -268,7 +268,7 @@ const VCFGeneratorTool: React.FC = () => {
                 />
                 <div>
                   <p className="text-sm font-medium text-grey-900 dark:text-gray-100 group-hover:text-navy dark:group-hover:text-blue-400 transition-colors">Specify Role</p>
-                  <p className="text-xs text-grey-500 dark:text-gray-400">Include role in contact name (e.g. "Name | Role | Company")</p>
+                  <p className="text-xs text-grey-500 dark:text-gray-400">Include role in contact name (e.g. "Name | Role | Details")</p>
                 </div>
               </label>
 
@@ -294,7 +294,7 @@ const VCFGeneratorTool: React.FC = () => {
                 </div>
                 <div className="h-10 w-px bg-grey-200 dark:bg-gray-700" />
                 <div>
-                  <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Companies</p>
+                  <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Details</p>
                   <p className="text-navy dark:text-blue-400 font-bold text-2xl">{companyCount}</p>
                 </div>
               </div>
@@ -316,7 +316,7 @@ const VCFGeneratorTool: React.FC = () => {
                     <th className="px-3 py-2 text-center font-semibold w-16 border-r border-white/20">#</th>
                     <th className="px-3 py-2 text-left font-semibold border-r border-white/20">Name</th>
                     {specifyRole && <th className="px-3 py-2 text-left font-semibold border-r border-white/20">Role</th>}
-                    <th className="px-3 py-2 text-left font-semibold border-r border-white/20">Company</th>
+                    <th className="px-3 py-2 text-left font-semibold border-r border-white/20">Details</th>
                     <th className="px-3 py-2 text-left font-semibold">Number</th>
                   </tr>
                 </thead>
