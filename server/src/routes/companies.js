@@ -20,18 +20,27 @@ router.get('/', async (req, res) => {
     }
 
     let query;
+    const userEmail = req.user.email;
+    
     if (userData.role === 'senior_coordinator') {
-      query = companiesRef.where('seniorCoordinatorEmail', '==', req.user.email);
+      console.log('Fetching companies for SC:', userEmail);
+      query = companiesRef.where('seniorCoordinatorEmail', '==', userEmail);
     } else if (userData.role === 'junior_coordinator') {
-      query = companiesRef.where('delegatedToJcEmail', '==', req.user.email);
+      console.log('Fetching companies for JC:', userEmail);
+      console.log('Query field: delegatedToJcEmail ==', userEmail);
+      query = companiesRef.where('delegatedToJcEmail', '==', userEmail);
     } else if (userData.role === 'admin') {
+      console.log('Fetching all companies for admin');
       query = companiesRef;
     } else {
       return res.status(403).json({ error: 'Invalid role' });
     }
 
     const snapshot = await query.get();
-    const companies = snapshot.docs.map((doc) => ({
+    const results = snapshot.docs;
+    console.log('Results found:', results.length);
+
+    const companies = results.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));

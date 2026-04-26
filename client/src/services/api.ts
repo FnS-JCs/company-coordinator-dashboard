@@ -117,12 +117,12 @@ export const gmailService = {
     const params = new URLSearchParams({ filename, mimeType });
     return `${API_BASE_URL}/gmail/emails/${messageId}/attachments/${attachmentId}?${params.toString()}`;
   },
-  async markAsRead(messageId: string, companyId: string) {
-    const response = await api.post('/gmail/mark-read', { messageId, companyId });
-    return response.data;
-  },
   async refreshEmails() {
     const response = await api.post('/gmail/refresh');
+    return response.data;
+  },
+  async getUnreadCounts(companyIds: string[]): Promise<{ counts: Record<string, number> }> {
+    const response = await api.get(`/gmail/unread-counts?companyIds=${companyIds.join(',')}`);
     return response.data;
   },
 };

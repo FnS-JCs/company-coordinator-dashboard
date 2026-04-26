@@ -3,7 +3,7 @@ import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { verifyRequest } from '../middleware/auth.js';
+import { verifyRequest, getDb } from '../middleware/auth.js';
 import { fetchCompanyEmails, getEmailDetail, getAttachment } from '../services/gmailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -187,36 +187,124 @@ router.get('/emails/:messageId/attachments/:attachmentId', async (req, res) => {
 router.post('/mark-read', async (req, res) => {
   try {
     const { messageId, companyId } = req.body;
+    const userUid = req.user?.uid || 'dev-user';
 
-    if (!fs.existsSync(TOKEN_PATH)) {
-      if (process.env.DEV_AUTH_BYPASS === 'true') {
-        return res.json({ success: true });
-      }
+    if (!messageId) {
+      return res.status(400).json({ error: 'messageId is required' });
+    }
+
+    if (fs.existsSync(TOKEN_PATH)) {
+      const gmail = getGmailClient();
+      await gmail.users.messages.modify({
+        userId: 'me',
+        id: messageId,
+        requestBody: { removeLabelIds: ['UNREAD'] },
+      });
+    } else if (process.env.DEV_AUTH_BYPASS !== 'true') {
       return res.status(400).json({ error: 'Gmail not connected' });
     }
 
-    const gmail = getGmailClient();
-
-    await gmail.users.messages.modify({
-      userId: 'me',
-      id: messageId,
-      requestBody: {
-        removeLabelIds: ['UNREAD'],
-      },
-    });
-
-    const db = (await import('../middleware/auth.js')).getDb();
-    await db.collection('emailReadStatus').add({
-      gmailMessageId: messageId,
+    const db = getDb();
+    if (!db) return res.status(500).json({ error: 'Database not initialized' });
+    const safeMessageId = messageId.replace(/[^a-zA-Z0-9]/g, '_');
+    const docId = `${userUid}_${safeMessageId}`;
+    await db.collection('emailReadStatus').doc(docId).set({
+      userUid,
+      messageId,
       companyId: companyId || null,
-      userUid: req.user.uid || 'dev-user',
       readAt: new Date(),
     });
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error marking as read:', error);
-    res.status(500).json({ error: 'Failed to mark as read' });
+    console.error('Mark as read error details:', error.message, error.stack);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/read-status', async (req, res) => {
+  try {
+    const { companyId } = req.query;
+    if (!companyId) return res.status(400).json({ error: 'companyId is required' });
+
+    const db = (await import('../middleware/auth.js')).getDb();
+    const userUid = req.user.uid || 'dev-user';
+
+    const snapshot = await db.collection('emailReadStatus')
+      .where('userUid', '==', userUid)
+      .get();
+
+    const readMessageIds = snapshot.docs
+      .map(doc => doc.data())
+      .filter(data => data.companyId === companyId)
+      .map(data => data.gmailMessageId);
+
+    res.json({ readMessageIds });
+  } catch (error) {
+    console.error('Error fetching read status:', error);
+    res.status(500).json({ error: 'Failed to fetch read status' });
+  }
+});
+
+router.get('/unread-counts', async (req, res) => {
+  try {
+    const { companyIds } = req.query;
+    if (!companyIds) return res.json({ counts: {} });
+
+    const ids = companyIds.split(',').filter(Boolean);
+    if (ids.length === 0) return res.json({ counts: {} });
+
+    if (!fs.existsSync(TOKEN_PATH)) {
+      return res.json({ counts: Object.fromEntries(ids.map(id => [id, 0])) });
+    }
+
+    const db = (await import('../middleware/auth.js')).getDb();
+    const userUid = req.user.uid || 'dev-user';
+
+    const readSnapshot = await db.collection('emailReadStatus')
+      .where('userUid', '==', userUid)
+      .get();
+
+    const readIds = new Set(readSnapshot.docs.map(doc => doc.data().gmailMessageId));
+
+    const gmail = getGmailClient();
+    const labelsRes = await gmail.users.labels.list({ userId: 'me' });
+    const allLabels = labelsRes.data.labels || [];
+
+    const companyDocs = await Promise.all(
+      ids.map(id => db.collection('companies').doc(id).get())
+    );
+
+    const counts = {};
+    await Promise.all(
+      companyDocs.map(async (doc, i) => {
+        const companyId = ids[i];
+        if (!doc.exists) { counts[companyId] = 0; return; }
+
+        const data = doc.data();
+        const scLabel = allLabels.find(l => l.name === data.labelSc);
+        const companyLabel = allLabels.find(l => l.name === data.labelCompany);
+
+        if (!scLabel || !companyLabel) { counts[companyId] = 0; return; }
+
+        try {
+          const messagesRes = await gmail.users.messages.list({
+            userId: 'me',
+            labelIds: [scLabel.id, companyLabel.id],
+            maxResults: 50,
+          });
+          const messages = messagesRes.data.messages || [];
+          counts[companyId] = messages.filter(m => !readIds.has(m.id)).length;
+        } catch {
+          counts[companyId] = 0;
+        }
+      })
+    );
+
+    res.json({ counts });
+  } catch (error) {
+    console.error('Error fetching unread counts:', error);
+    res.status(500).json({ error: 'Failed to fetch unread counts' });
   }
 });
 

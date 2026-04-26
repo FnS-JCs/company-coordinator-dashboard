@@ -9,6 +9,10 @@ import { Button } from '../components/Button';
 import { companyService, gmailService, userService } from '../services/api';
 import type { Company, GmailEmail, User } from '../types';
 
+type EmailFilter = 'all' | 'unread' | 'read';
+
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
+
 const CompanyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -25,6 +29,10 @@ const CompanyDetail: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [readMessageIds, setReadMessageIds] = useState<Set<string>>(new Set());
+  const [emailFilter, setEmailFilter] = useState<EmailFilter>('all');
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [, setRefreshTick] = useState(0);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -34,9 +42,37 @@ const CompanyDetail: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const getLastRefreshedText = () => {
+    if (!lastRefreshed) return '';
+    const mins = Math.floor((Date.now() - lastRefreshed.getTime()) / 60000);
+    if (mins === 0) return 'just now';
+    return `${mins} min${mins === 1 ? '' : 's'} ago`;
+  };
+
   useEffect(() => {
     loadData();
   }, [id]);
+
+  // Auto-refresh every 5 minutes — only updates email list
+  useEffect(() => {
+    if (!id) return;
+    const interval = setInterval(async () => {
+      try {
+        const emailsData = await gmailService.getEmails(id);
+        setEmails(emailsData);
+        setLastRefreshed(new Date());
+      } catch {
+        // silent failure for background refresh
+      }
+    }, AUTO_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [id]);
+
+  // Tick every minute to update "Last refreshed X mins ago" display
+  useEffect(() => {
+    const interval = setInterval(() => setRefreshTick(t => t + 1), 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadData = async () => {
     if (!id) return;
@@ -50,22 +86,18 @@ const CompanyDetail: React.FC = () => {
         return;
       }
 
-      const [emailsData, usersData] = await Promise.allSettled([
-        gmailService.getEmails(id),
-        userService.getUsers(),
-      ]);
+    const [emailsData, usersData] = await Promise.allSettled([
+      gmailService.getEmails(id),
+      userService.getUsers(),
+    ]);
 
-      if (emailsData.status === 'fulfilled') {
-        setEmails(emailsData.value);
-      } else {
-        console.error('Failed to load emails:', emailsData.reason);
-      }
-
-      if (usersData.status === 'fulfilled') {
-        setJcUsers(usersData.value.filter((u: User) => u.role === 'junior_coordinator'));
-      } else {
-        console.error('Failed to load users:', usersData.reason);
-      }
+    if (emailsData.status === 'fulfilled') setEmails(emailsData.value);
+    if (usersData.status === 'fulfilled') {
+      setJcUsers(usersData.value.filter((u: User) => u.role === 'junior_coordinator'));
+    } else {
+      console.error('Failed to load users:', usersData.reason);
+    }
+      setLastRefreshed(new Date());
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -79,6 +111,7 @@ const CompanyDetail: React.FC = () => {
     try {
       const emailsData = await gmailService.getEmails(id);
       setEmails(emailsData);
+      setLastRefreshed(new Date());
     } catch (error) {
       console.error('Failed to refresh:', error);
     } finally {
@@ -86,9 +119,14 @@ const CompanyDetail: React.FC = () => {
     }
   };
 
+  const handleMarkAsRead = (emailId: string) => {
+    setReadMessageIds(prev => new Set([...prev, emailId]));
+  };
+
   const handleEmailClick = async (email: GmailEmail) => {
     setSelectedEmail(email);
     setLoadingEmail(true);
+    handleMarkAsRead(email.id);
     try {
       const detail = await gmailService.getEmail(email.id);
       setSelectedEmailDetail(detail);
@@ -96,18 +134,6 @@ const CompanyDetail: React.FC = () => {
       console.error('Failed to fetch email detail:', error);
     } finally {
       setLoadingEmail(false);
-    }
-  };
-
-  const handleMarkAsRead = async (email: GmailEmail) => {
-    if (!id) return;
-    try {
-      await gmailService.markAsRead(email.id, id);
-      setEmails((prev) =>
-        prev.map((e) => (e.id === email.id ? { ...email } : e))
-      );
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
     }
   };
 
@@ -147,6 +173,14 @@ const CompanyDetail: React.FC = () => {
       console.error('Failed to revert:', error);
     }
   };
+
+  const filteredEmails = emails.filter(email => {
+    if (emailFilter === 'all') return true;
+    if (emailFilter === 'unread') return !readMessageIds.has(email.id);
+    return readMessageIds.has(email.id);
+  });
+
+  const unreadCount = emails.length - readMessageIds.size;
 
   if (loading) {
     return (
@@ -193,9 +227,6 @@ const CompanyDetail: React.FC = () => {
                 )}
               </div>
             </div>
-            <Button variant="secondary" onClick={handleRefresh} disabled={refreshing}>
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
             <Button variant="danger" onClick={() => setShowDeleteModal(true)}>
               Delete
             </Button>
@@ -247,35 +278,115 @@ const CompanyDetail: React.FC = () => {
           )}
 
           <div>
-            <h2 className="text-lg font-semibold text-grey-900 dark:text-gray-100 mb-4">Inbox</h2>
-            {emails.length === 0 ? (
+            {/* Inbox header with refresh controls */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold text-grey-900 dark:text-gray-100">Inbox</h2>
+                {unreadCount > 0 && (
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold text-white bg-red-500 rounded-full">
+                    {unreadCount} unread
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                {lastRefreshed && (
+                  <span className="text-xs text-grey-400 dark:text-gray-500">
+                    Last refreshed: {getLastRefreshedText()}
+                  </span>
+                )}
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-grey-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-grey-200 dark:border-gray-600 rounded-lg hover:bg-grey-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                >
+                  {refreshing ? (
+                    <>
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Refresh
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Read/Unread filter bar */}
+            <div className="flex gap-1 mb-4 p-1 bg-grey-100 dark:bg-gray-800 rounded-lg w-fit">
+              {(['all', 'unread', 'read'] as EmailFilter[]).map(filter => (
+                <button
+                  key={filter}
+                  onClick={() => setEmailFilter(filter)}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors capitalize ${
+                    emailFilter === filter
+                      ? 'bg-white dark:bg-gray-700 text-grey-900 dark:text-gray-100 shadow-sm'
+                      : 'text-grey-500 dark:text-gray-400 hover:text-grey-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {filter}
+                  {filter === 'unread' && unreadCount > 0 && (
+                    <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-xs font-bold text-white bg-red-500 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {filteredEmails.length === 0 ? (
               <Card className="text-center py-12">
-                <p className="text-grey-500 dark:text-gray-400">No emails in this company's inbox.</p>
-                <p className="text-sm text-grey-400 dark:text-gray-500 mt-1">
-                  Emails labeled with both &ldquo;{company.labelCompany}&rdquo; and &ldquo;{company.labelSc}&rdquo; in the GRC inbox will appear here.
-                </p>
+                {emails.length === 0 ? (
+                  <>
+                    <p className="text-grey-500 dark:text-gray-400">No emails in this company's inbox.</p>
+                    <p className="text-sm text-grey-400 dark:text-gray-500 mt-1">
+                      Emails labeled with both &ldquo;{company.labelCompany}&rdquo; and &ldquo;{company.labelSc}&rdquo; in the GRC inbox will appear here.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-grey-500 dark:text-gray-400">No {emailFilter} emails.</p>
+                )}
               </Card>
             ) : (
               <div className="space-y-3">
-                {emails.map((email) => (
-                  <Card key={email.id} className="cursor-pointer hover:border-navy dark:hover:border-blue-500 transition-colors" onClick={() => handleEmailClick(email)}>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-medium text-grey-900 dark:text-gray-100">{email.from}</p>
-                        <p className="text-sm text-grey-500 dark:text-gray-400 mt-0.5">{email.subject}</p>
-                        <p className="text-sm text-grey-400 dark:text-gray-500 mt-1 line-clamp-2">{email.snippet}</p>
+                {filteredEmails.map((email) => {
+                  const isUnread = !readMessageIds.has(email.id);
+                  return (
+                    <Card
+                      key={email.id}
+                      className={`cursor-pointer hover:border-navy dark:hover:border-blue-500 transition-colors ${isUnread ? 'border-l-4 border-l-blue-500 dark:border-l-blue-400' : ''}`}
+                      onClick={() => handleEmailClick(email)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start gap-2 flex-1">
+                          {isUnread && (
+                            <span className="mt-1.5 w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 flex-shrink-0" />
+                          )}
+                          <div className="flex-1">
+                            <p className={`font-medium text-grey-900 dark:text-gray-100 ${isUnread ? 'font-semibold' : ''}`}>{email.from}</p>
+                            <p className="text-sm text-grey-500 dark:text-gray-400 mt-0.5">{email.subject}</p>
+                            <p className="text-sm text-grey-400 dark:text-gray-500 mt-1 line-clamp-2">{email.snippet}</p>
+                          </div>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="text-xs text-grey-400 dark:text-gray-500">
+                            {new Date(email.date).toLocaleDateString()}
+                          </p>
+                          {email.year && (
+                            <Badge className="mt-1">{email.year}</Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right ml-4">
-                        <p className="text-xs text-grey-400 dark:text-gray-500">
-                          {new Date(email.date).toLocaleDateString()}
-                        </p>
-                        {email.year && (
-                          <Badge className="mt-1">{email.year}</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -415,9 +526,6 @@ const CompanyDetail: React.FC = () => {
             <div className="flex justify-end gap-3 mt-6 flex-shrink-0 pt-4 border-t border-grey-100 dark:border-gray-700">
               <Button variant="secondary" onClick={() => { setSelectedEmail(null); setSelectedEmailDetail(null); }}>
                 Close
-              </Button>
-              <Button variant="primary" onClick={() => { handleMarkAsRead(selectedEmail); setSelectedEmail(null); setSelectedEmailDetail(null); }}>
-                Mark as Read
               </Button>
             </div>
           </div>

@@ -5,7 +5,7 @@ import { Card } from '../components/Card';
 import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
-import { companyService, settingsService } from '../services/api';
+import { companyService, settingsService, gmailService } from '../services/api';
 import type { Company } from '../types';
 
 const Dashboard: React.FC = () => {
@@ -20,6 +20,7 @@ const Dashboard: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [createdLabels, setCreatedLabels] = useState<{ labelSc: string; labelCompany: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'placement' | 'internship'>('placement');
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadData();
@@ -33,6 +34,13 @@ const Dashboard: React.FC = () => {
       ]);
       setCompanies(companiesData);
       setAcademicYear(yearData.year);
+
+      if (companiesData.length > 0) {
+        const ids = companiesData.map((c: Company) => c.id);
+        gmailService.getUnreadCounts(ids)
+          .then(data => setUnreadCounts(data.counts))
+          .catch(() => {});
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
@@ -148,7 +156,14 @@ const Dashboard: React.FC = () => {
                       Delegated to JC
                     </p>
                   )}
-                  <p className="text-navy dark:text-blue-400 text-sm font-medium mt-3">Open</p>
+                  <div className="flex items-center justify-between mt-3">
+                    <p className="text-navy dark:text-blue-400 text-sm font-medium">Open</p>
+                    {unreadCounts[company.id] > 0 && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold text-white bg-red-500 rounded-full">
+                        {unreadCounts[company.id]} unread
+                      </span>
+                    )}
+                  </div>
                 </Card>
               ))}
             </div>

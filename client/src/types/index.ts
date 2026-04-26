@@ -35,6 +35,7 @@ export interface GmailEmail {
   subject: string;
   date: string;
   snippet: string;
+  year?: string;
   body?: string;
   attachments?: Attachment[];
 }

@@ -46,7 +46,12 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleDevLogin = (role: string) => {
+  const handleDevLogin = (role: string, email: string, name: string) => {
+    localStorage.removeItem('idToken');
+    localStorage.removeItem('userData');
+    localStorage.setItem('devRole', role);
+    localStorage.setItem('devEmail', email);
+    localStorage.setItem('devName', name);
     setDevUser(role);
     if (role === 'admin') {
       navigate('/admin');
@@ -94,7 +99,7 @@ const LoginPage: React.FC = () => {
           <Button
             variant="secondary"
             className="w-full"
-            onClick={() => handleDevLogin('admin')}
+            onClick={() => handleDevLogin('admin', 'srcc.pc.jc.fns2526@gmail.com', 'Dev Admin')}
             disabled={loading}
           >
             Dev: Login as Admin
@@ -103,7 +108,7 @@ const LoginPage: React.FC = () => {
           <Button
             variant="secondary"
             className="w-full"
-            onClick={() => handleDevLogin('senior_coordinator')}
+            onClick={() => handleDevLogin('senior_coordinator', 'seyanthegoat@gmail.com', 'Nayes')}
             disabled={loading}
           >
             Dev: Login as SC
@@ -112,7 +117,7 @@ const LoginPage: React.FC = () => {
           <Button
             variant="secondary"
             className="w-full"
-            onClick={() => handleDevLogin('junior_coordinator')}
+            onClick={() => handleDevLogin('junior_coordinator', 'seyan.sonone@gmail.com', 'Seyan')}
             disabled={loading}
           >
             Dev: Login as JC

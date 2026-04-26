@@ -46,19 +46,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const setDevUser = (role: string) => {
-    const devEmail = 'srcc.pc.jc.fns2526@gmail.com';
     localStorage.removeItem('idToken');
     localStorage.removeItem('userData');
-    
-    localStorage.setItem('devRole', role);
-    localStorage.setItem('devEmail', devEmail);
-    localStorage.setItem('devName', 'Dev User');
+
+    const devEmail = localStorage.getItem('devEmail') || 'dev@srcc.du.ac.in';
+    const devName = localStorage.getItem('devName') || role;
 
     setDevRole(role);
     setUser({
       email: devEmail,
       role: role as 'admin' | 'senior_coordinator' | 'junior_coordinator',
-      name: 'Dev User',
+      name: devName,
       uid: 'dev-user',
     });
   };
