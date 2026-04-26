@@ -35,7 +35,18 @@ const AdminDashboard: React.FC = () => {
         gmailService.getGmailStatus(),
         settingsService.getAdminEmail(),
       ]);
-      setUsers(usersData);
+
+      // Deduplicate users by email
+      const uniqueUsers = usersData.reduce((acc: User[], current: User) => {
+        const x = acc.find(item => item.email === current.email);
+        if (!x) {
+          return acc.concat([current]);
+        } else {
+          return acc;
+        }
+      }, []);
+
+      setUsers(uniqueUsers);
       setGmailStatus(gmailData);
       setAdminEmail(emailData.email);
     } catch (error) {
@@ -67,7 +78,7 @@ const AdminDashboard: React.FC = () => {
   const handleSaveUser = async () => {
     try {
       if (editingUser) {
-        await userService.updateUser(editingUser.uid, userForm);
+        await userService.updateUser(editingUser.id, userForm);
       } else {
         await userService.createUser(userForm);
       }
@@ -86,11 +97,11 @@ const AdminDashboard: React.FC = () => {
     setShowUserModal(true);
   };
 
-  const handleDeleteUser = async (uid: string) => {
-    const userToDelete = users.find((u) => u.uid === uid);
+  const handleDeleteUser = async (id: string) => {
+    const userToDelete = users.find((u) => u.id === id);
     if (!confirm(`Remove ${userToDelete?.name}? This will revoke their access immediately.`)) return;
     try {
-      await userService.deleteUser(uid);
+      await userService.deleteUser(id);
       loadData();
     } catch (error) {
       console.error('Failed to delete user:', error);
@@ -168,29 +179,42 @@ const AdminDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
-                    <tr key={u.uid} className="border-b border-grey-100 last:border-0">
-                      <td className="py-3 px-4 text-sm text-grey-900">{u.name}</td>
-                      <td className="py-3 px-4 text-sm text-grey-500">{u.email}</td>
-                      <td className="py-3 px-4 text-sm text-grey-500">{u.phone || '-'}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={u.role === 'admin' ? 'warning' : u.role === 'senior_coordinator' ? 'success' : 'default'}>
-                          {u.role?.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-grey-500">
-                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button onClick={() => handleEditUser(u)} className="text-navy hover:underline text-sm mr-3">
-                          Edit
-                        </button>
-                        <button onClick={() => handleDeleteUser(u.uid)} className="text-red-500 hover:underline text-sm">
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {users.map((u) => {
+                    const isSelf = u.email === user?.email;
+                    return (
+                      <tr key={u.id} className="border-b border-grey-100 last:border-0">
+                        <td className="py-3 px-4 text-sm text-grey-900">{u.name}</td>
+                        <td className="py-3 px-4 text-sm text-grey-500">{u.email}</td>
+                        <td className="py-3 px-4 text-sm text-grey-500">{u.phone || '-'}</td>
+                        <td className="py-3 px-4">
+                          <Badge variant={u.role === 'admin' ? 'warning' : u.role === 'senior_coordinator' ? 'success' : 'default'}>
+                            {u.role?.replace('_', ' ')}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-grey-500">
+                          {u.createdAt ? (
+                            (() => {
+                              const date = (u.createdAt as any).toDate ? (u.createdAt as any).toDate() : new Date(u.createdAt);
+                              return date.toLocaleDateString();
+                            })()
+                          ) : '-'}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button onClick={() => handleEditUser(u)} className="text-navy hover:underline text-sm mr-3">
+                            Edit
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteUser(u.id)} 
+                            className={`${isSelf ? 'text-grey-300 cursor-not-allowed' : 'text-red-500 hover:underline'} text-sm`}
+                            disabled={isSelf}
+                            title={isSelf ? 'Cannot remove your own account' : ''}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </Card>

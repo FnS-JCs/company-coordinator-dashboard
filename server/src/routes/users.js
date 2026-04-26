@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
     const snapshot = await usersRef.get();
     
     const users = snapshot.docs.map((doc) => ({
-      uid: doc.id,
+      id: doc.id,
       ...doc.data(),
     }));
     
@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { name, email, phone, role } = req.body;
+    const { name, email, phone, role, uid } = req.body;
     
     if (!name || !email || !role) {
       return res.status(400).json({ error: 'Name, email, and role are required' });
@@ -44,25 +44,26 @@ router.post('/', requireAdmin, async (req, res) => {
       email,
       phone: phone || null,
       role,
+      uid: uid || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
     
     const docRef = await usersRef.add(userData);
-    res.status(201).json({ uid: docRef.id, ...userData });
+    res.status(201).json({ id: docRef.id, ...userData });
   } catch (error) {
     console.error('Error creating user:', error);
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
 
-router.patch('/:uid', requireAdmin, async (req, res) => {
+router.patch('/:id', requireAdmin, async (req, res) => {
   try {
-    const { uid } = req.params;
-    const { name, email, phone, role } = req.body;
+    const { id } = req.params;
+    const { name, email, phone, role, uid } = req.body;
     
     const db = getDb();
-    const userRef = db.collection('users').doc(uid);
+    const userRef = db.collection('users').doc(id);
     const userDoc = await userRef.get();
     
     if (!userDoc.exists) {
@@ -74,25 +75,26 @@ router.patch('/:uid', requireAdmin, async (req, res) => {
       ...(email && { email }),
       ...(phone !== undefined && { phone }),
       ...(role && { role }),
+      ...(uid && { uid }),
       updatedAt: new Date(),
     };
     
     await userRef.update(updates);
     const updatedDoc = await userRef.get();
     
-    res.json({ uid: updatedDoc.id, ...updatedDoc.data() });
+    res.json({ id: updatedDoc.id, ...updatedDoc.data() });
   } catch (error) {
     console.error('Error updating user:', error);
     res.status(500).json({ error: 'Failed to update user' });
   }
 });
 
-router.delete('/:uid', requireAdmin, async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
-    const { uid } = req.params;
+    const { id } = req.params;
     const db = getDb();
     
-    const userRef = db.collection('users').doc(uid);
+    const userRef = db.collection('users').doc(id);
     const userDoc = await userRef.get();
     
     if (!userDoc.exists) {

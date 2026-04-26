@@ -6,6 +6,7 @@ interface AuthContextType {
   devRole: string | null;
   loading: boolean;
   setDevUser: (role: string) => void;
+  setAuthUser: (userData: any, idToken: string) => void;
   logout: () => void;
 }
 
@@ -20,6 +21,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedRole = localStorage.getItem('devRole');
     const storedEmail = localStorage.getItem('devEmail');
     const storedName = localStorage.getItem('devName');
+    const idToken = localStorage.getItem('idToken');
+    const userDataStr = localStorage.getItem('userData');
 
     if (storedRole && storedEmail) {
       setDevRole(storedRole);
@@ -29,12 +32,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: storedName || storedEmail,
         uid: 'dev-user',
       });
+    } else if (idToken && userDataStr) {
+      try {
+        const userData = JSON.parse(userDataStr);
+        setUser(userData);
+      } catch (e) {
+        console.error('Failed to parse stored user data', e);
+        localStorage.removeItem('idToken');
+        localStorage.removeItem('userData');
+      }
     }
     setLoading(false);
   }, []);
 
   const setDevUser = (role: string) => {
     const devEmail = 'srcc.pc.jc.fns2526@gmail.com';
+    localStorage.removeItem('idToken');
+    localStorage.removeItem('userData');
+    
     localStorage.setItem('devRole', role);
     localStorage.setItem('devEmail', devEmail);
     localStorage.setItem('devName', 'Dev User');
@@ -48,16 +63,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const setAuthUser = (userData: any, idToken: string) => {
+    localStorage.removeItem('devRole');
+    localStorage.removeItem('devEmail');
+    localStorage.removeItem('devName');
+    setDevRole(null);
+
+    localStorage.setItem('idToken', idToken);
+    localStorage.setItem('userData', JSON.stringify(userData));
+    setUser(userData);
+  };
+
   const logout = () => {
     localStorage.removeItem('devRole');
     localStorage.removeItem('devEmail');
     localStorage.removeItem('devName');
+    localStorage.removeItem('idToken');
+    localStorage.removeItem('userData');
     setUser(null);
     setDevRole(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, devRole, loading, setDevUser, logout }}>
+    <AuthContext.Provider value={{ user, devRole, loading, setDevUser, setAuthUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

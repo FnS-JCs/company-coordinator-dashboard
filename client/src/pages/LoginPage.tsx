@@ -1,11 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/Button';
+import { auth } from '../services/firebase';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { authService } from '../services/api';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setDevUser } = useAuth();
+  const { setDevUser, setAuthUser } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setError(null);
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      
+      try {
+        const userData = await authService.verifyToken(idToken);
+        setAuthUser(userData, idToken);
+        
+        if (userData.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      } catch (err: any) {
+        console.error('Backend verification failed:', err);
+        await signOut(auth);
+        if (err.response?.status === 403) {
+          setError('Access denied. Contact the administrator.');
+        } else {
+          setError('Authentication failed. Please try again.');
+        }
+      }
+    } catch (err: any) {
+      console.error('Google Sign-In failed:', err);
+      setError('Google Sign-In failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDevLogin = (role: string) => {
     setDevUser(role);
@@ -27,13 +66,20 @@ const LoginPage: React.FC = () => {
           <p className="text-grey-500 mt-1">Company Coordinator Dashboard</p>
         </div>
 
+        {error && (
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg text-center">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-3">
           <Button
             variant="primary"
-            className="w-full"
-            onClick={() => window.location.href = '/api/auth/google'}
+            className="w-full flex items-center justify-center gap-2"
+            onClick={handleGoogleLogin}
+            disabled={loading}
           >
-            Sign in with Google
+            {loading ? 'Signing in...' : 'Sign in with Google'}
           </Button>
 
           <div className="relative my-6">
@@ -49,6 +95,7 @@ const LoginPage: React.FC = () => {
             variant="secondary"
             className="w-full"
             onClick={() => handleDevLogin('admin')}
+            disabled={loading}
           >
             Dev: Login as Admin
           </Button>
@@ -57,6 +104,7 @@ const LoginPage: React.FC = () => {
             variant="secondary"
             className="w-full"
             onClick={() => handleDevLogin('senior_coordinator')}
+            disabled={loading}
           >
             Dev: Login as SC
           </Button>
@@ -65,6 +113,7 @@ const LoginPage: React.FC = () => {
             variant="secondary"
             className="w-full"
             onClick={() => handleDevLogin('junior_coordinator')}
+            disabled={loading}
           >
             Dev: Login as JC
           </Button>

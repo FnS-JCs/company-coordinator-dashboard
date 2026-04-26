@@ -292,33 +292,14 @@ function buildWorkbook(title: string, applicants: ApplicantRow[], customColumns:
     return { wch: Math.min(Math.max(maxLen + 4, 10), 50) };
   });
 
-  // Setup column properties (widths and hidden status)
+  // Setup column widths
   const finalCols: XLSX.ColInfo[] = [];
-  const hiddenCol = { hidden: true };
   finalCols[0] = { wch: 3.71 }; // Column A: Left padding
   wscols.forEach((wc, i) => {
     finalCols[i + 1] = wc; // Data columns B, C, ...
   });
   finalCols[headers.length + 1] = { wch: 3.71 }; // Right padding column
-  
-  // HIDE ALL COLUMNS: Using a loop up to the absolute Excel limit (16384)
-  // 16,384 entries is small enough not to cause lag, but ensures all columns are hidden.
-  for (let i = headers.length + 2; i < 16384; i++) {
-    finalCols[i] = hiddenCol;
-  }
   ws['!cols'] = finalCols;
-
-  // Setup row properties
-  // To hide ALL rows (1,048,576) without massive lag, we use an optimized array fill.
-  // Note: This will increase the file size (~10-15MB) because XLSX requires 
-  // an entry for every hidden row, but it achieves the "clean" look you requested.
-  const finalRows: XLSX.RowInfo[] = new Array(1048576);
-  const hiddenRow = { hidden: true };
-  const totalRowsInAoa = aoa.length;
-  
-  // Fill the hidden rows starting from after our data
-  finalRows.fill(hiddenRow, totalRowsInAoa);
-  ws['!rows'] = finalRows;
 
   // Merges
   ws['!merges'] = [{ s: { r: 1, c: 1 }, e: { r: 1, c: headers.length } }];

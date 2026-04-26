@@ -150,8 +150,38 @@ export async function verifyRequest(req, res, next) {
       };
       return next();
     }
+    
+    // Fallback to token verification if dev headers are missing but token is present
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(token);
 
-    return res.status(401).json({ error: 'Dev mode: missing X-Dev-Role or X-Dev-Email header' });
+        const userSnapshot = await getDb().collection('users')
+          .where('email', '==', decodedToken.email)
+          .limit(1)
+          .get();
+
+        if (userSnapshot.empty) {
+          return res.status(403).json({ error: 'Your account is not authorized to access this system.' });
+        }
+
+        const userData = userSnapshot.docs[0].data();
+        req.user = {
+          uid: decodedToken.uid,
+          email: decodedToken.email,
+          role: userData.role,
+          name: userData.name,
+        };
+
+        return next();
+      } catch (error) {
+        console.error('Token verification error in dev mode:', error);
+      }
+    }
+
+    return res.status(401).json({ error: 'Dev mode: missing X-Dev-Role or X-Dev-Email header, and no valid token provided' });
   }
 
   const authHeader = req.headers.authorization;
@@ -162,7 +192,24 @@ export async function verifyRequest(req, res, next) {
   try {
     const token = authHeader.split('Bearer ')[1];
     const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken;
+
+    const userSnapshot = await getDb().collection('users')
+      .where('email', '==', decodedToken.email)
+      .limit(1)
+      .get();
+
+    if (userSnapshot.empty) {
+      return res.status(403).json({ error: 'Your account is not authorized to access this system.' });
+    }
+
+    const userData = userSnapshot.docs[0].data();
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      role: userData.role,
+      name: userData.name,
+    };
+
     next();
   } catch (error) {
     console.error('Token verification error:', error);

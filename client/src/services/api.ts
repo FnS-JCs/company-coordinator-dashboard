@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,6 +12,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const devRole = localStorage.getItem('devRole');
   const devEmail = localStorage.getItem('devEmail');
+  const idToken = localStorage.getItem('idToken');
   
   if (devRole) {
     config.headers['X-Dev-Role'] = devRole;
@@ -19,11 +20,22 @@ api.interceptors.request.use((config) => {
   if (devEmail) {
     config.headers['X-Dev-Email'] = devEmail;
   }
+  if (idToken) {
+    config.headers['Authorization'] = `Bearer ${idToken}`;
+  }
   
   return config;
 });
 
 export const authService = {
+  async verifyToken(token: string): Promise<{ role: string; name: string; email: string }> {
+    const response = await api.post('/auth/verify', {}, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
+  },
   async getDevAuthUrl(role: string): Promise<{ url: string }> {
     const response = await api.get(`/auth/dev-url?role=${role}`);
     return response.data;
@@ -39,12 +51,12 @@ export const userService = {
     const response = await api.post('/users', user);
     return response.data;
   },
-  async updateUser(uid: string, user: any) {
-    const response = await api.patch(`/users/${uid}`, user);
+  async updateUser(id: string, user: any) {
+    const response = await api.patch(`/users/${id}`, user);
     return response.data;
   },
-  async deleteUser(uid: string) {
-    const response = await api.delete(`/users/${uid}`);
+  async deleteUser(id: string) {
+    const response = await api.delete(`/users/${id}`);
     return response.data;
   },
 };
