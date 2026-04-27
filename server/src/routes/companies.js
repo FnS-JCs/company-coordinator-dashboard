@@ -11,44 +11,32 @@ async function getAcademicYear(db) {
 
 router.get('/', async (req, res) => {
   try {
-    const db = getDb();
-    const companiesRef = db.collection('companies');
-    
-    const userData = await getCurrentUserData(req, req.user.email);
-    if (!userData) {
-      return res.status(403).json({ error: 'User not found in database' });
-    }
+    const { email, role } = req.user
+    console.log('GET /api/companies called by:', email, 'role:', role)
 
-    let query;
-    const userEmail = req.user.email;
-    
-    if (userData.role === 'senior_coordinator') {
-      console.log('Fetching companies for SC:', userEmail);
-      query = companiesRef.where('seniorCoordinatorEmail', '==', userEmail);
-    } else if (userData.role === 'junior_coordinator') {
-      console.log('Fetching companies for JC:', userEmail);
-      console.log('Query field: delegatedToJcEmail ==', userEmail);
-      query = companiesRef.where('delegatedToJcEmail', '==', userEmail);
-    } else if (userData.role === 'admin') {
-      console.log('Fetching all companies for admin');
-      query = companiesRef;
+    const db = getDb()
+    let snapshot
+
+    if (role === 'senior_coordinator') {
+      snapshot = await db.collection('companies')
+        .where('seniorCoordinatorEmail', '==', email)
+        .get()
+    } else if (role === 'junior_coordinator') {
+      snapshot = await db.collection('companies')
+        .where('delegatedToJcEmail', '==', email)
+        .get()
+    } else if (role === 'admin') {
+      snapshot = await db.collection('companies').get()
     } else {
-      return res.status(403).json({ error: 'Invalid role' });
+      return res.json([])
     }
 
-    const snapshot = await query.get();
-    const results = snapshot.docs;
-    console.log('Results found:', results.length);
-
-    const companies = results.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-
-    res.json(companies);
+    const companies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    console.log('Companies found:', companies.length)
+    res.json(companies)
   } catch (error) {
-    console.error('Error fetching companies:', error);
-    res.status(500).json({ error: 'Failed to fetch companies' });
+    console.error('Get companies error:', error)
+    res.status(500).json({ error: error.message })
   }
 });
 

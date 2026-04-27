@@ -121,6 +121,9 @@ export function isDevMode() {
 }
 
 export async function verifyRequest(req, res, next) {
+  console.log('Auth middleware - DEV_AUTH_BYPASS:', process.env.DEV_AUTH_BYPASS)
+  console.log('Auth middleware - X-Dev-Email header:', req.headers['x-dev-email'])
+  console.log('Auth middleware - X-Dev-Role header:', req.headers['x-dev-role'])
   if (isDevMode()) {
     // Check if it's an OAuth callback - allow it without headers
     // Using originalUrl to handle cases where middleware is inside a router
