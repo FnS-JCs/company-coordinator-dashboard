@@ -1,10 +1,9 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export const DevBanner: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { devRole } = useAuth();
 
   if (!devRole) return null;
@@ -19,32 +18,34 @@ export const DevBanner: React.FC = () => {
     window.location.reload();
   };
 
+  const roles = [
+    { key: 'admin', label: 'Admin' },
+    { key: 'senior_coordinator', label: 'SC' },
+    { key: 'junior_coordinator', label: 'JC' },
+  ];
+
   return (
-    <div className="bg-yellow-400 text-yellow-900 px-4 py-2 text-sm font-medium">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <span>DEV MODE — Auth bypassed. Current role: {devRole}</span>
-        <div className="flex gap-2">
+    <div
+      className="flex-shrink-0 flex items-center justify-between px-4"
+      style={{ height: 40, backgroundColor: '#D97706' }}
+    >
+      <span className="text-white text-[11px] font-semibold tracking-widest uppercase">
+        DEV MODE — Auth bypassed &nbsp;&middot;&nbsp; Role: {devRole}
+      </span>
+      <div className="flex items-center gap-1">
+        {roles.map((r) => (
           <button
-            onClick={() => handleRoleSwitch('admin')}
-            className={`underline ${devRole === 'admin' ? 'font-bold' : ''}`}
+            key={r.key}
+            onClick={() => handleRoleSwitch(r.key)}
+            className={`h-6 px-3 rounded-full text-[11px] font-semibold uppercase tracking-wide transition-all ${
+              devRole === r.key
+                ? 'bg-white text-[#D97706]'
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
           >
-            Admin
+            {r.label}
           </button>
-          <span>|</span>
-          <button
-            onClick={() => handleRoleSwitch('senior_coordinator')}
-            className={`underline ${devRole === 'senior_coordinator' ? 'font-bold' : ''}`}
-          >
-            SC
-          </button>
-          <span>|</span>
-          <button
-            onClick={() => handleRoleSwitch('junior_coordinator')}
-            className={`underline ${devRole === 'junior_coordinator' ? 'font-bold' : ''}`}
-          >
-            JC
-          </button>
-        </div>
+        ))}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
+﻿import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -413,16 +414,14 @@ const ExcelFormatterTool: React.FC = () => {
       <div className="flex items-center gap-3 mb-1">
         <button
           onClick={() => navigate(-1)}
-          className="text-grey-500 dark:text-gray-400 hover:text-grey-900 dark:hover:text-gray-100 transition-colors"
+          className="p-1.5 rounded-lg text-grey-400 dark:text-[#6B7E95] hover:text-grey-700 dark:hover:text-[#A8B8CC] hover:bg-grey-100 dark:hover:bg-[#1B3055] transition-all"
           aria-label="Go back"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft className="w-4 h-4" />
         </button>
-        <h1 className="text-2xl font-bold text-grey-900 dark:text-gray-100">Excel Auto-formatter</h1>
+        <h1 className="text-xl font-bold text-grey-900 dark:text-[#F0F4FA]">Excel Auto-formatter</h1>
       </div>
-      <p className="text-sm text-grey-500 dark:text-gray-400 mb-6 ml-8">
+      <p className="text-sm text-grey-500 dark:text-[#6B7E95] mb-6 ml-8">
         Formats Superset applicant export files into a clean applicant list.
       </p>
 
@@ -436,11 +435,11 @@ const ExcelFormatterTool: React.FC = () => {
             className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${
               dragging
                 ? 'border-navy bg-navy/5 dark:bg-blue-900/10'
-                : 'border-grey-300 dark:border-gray-600 hover:border-navy hover:bg-grey-50 dark:hover:bg-gray-700/30'
+                : 'border-grey-300 dark:border-[#243D6A] hover:border-navy hover:bg-grey-50 dark:hover:bg-[#1B3055]/30'
             }`}
           >
             <svg
-              className="mx-auto mb-3 w-10 h-10 text-grey-400 dark:text-gray-500"
+              className="mx-auto mb-3 w-10 h-10 text-grey-400 dark:text-[#6B7E95]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -452,8 +451,8 @@ const ExcelFormatterTool: React.FC = () => {
                 d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <p className="text-grey-700 dark:text-gray-300 font-medium">Drop your Superset export here</p>
-            <p className="text-grey-400 dark:text-gray-500 text-sm mt-1">or click to browse — .xlsx files only</p>
+            <p className="text-grey-700 dark:text-[#A8B8CC] font-medium">Drop your Superset export here</p>
+            <p className="text-grey-400 dark:text-[#6B7E95] text-sm mt-1">or click to browse — .xlsx files only</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -471,27 +470,27 @@ const ExcelFormatterTool: React.FC = () => {
           <Card>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">File</p>
-                <p className="text-grey-900 dark:text-gray-100 font-medium text-sm">{inputFileName}</p>
+                <p className="text-xs text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-0.5">File</p>
+                <p className="text-grey-900 dark:text-[#F0F4FA] font-medium text-sm">{inputFileName}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Applicants</p>
-                <p className="text-navy dark:text-blue-400 font-bold text-2xl">{applicants.length}</p>
+                <p className="text-xs text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-0.5">Applicants</p>
+                <p className="text-navy dark:text-[#4A7FBF] font-bold text-2xl">{applicants.length}</p>
               </div>
             </div>
             <div>
-              <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-1">Output Title</p>
-              <p className="text-grey-900 dark:text-gray-100 text-sm font-medium bg-grey-50 dark:bg-gray-700 rounded px-3 py-2 border border-grey-200 dark:border-gray-600">
+              <p className="text-xs text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-1">Output Title</p>
+              <p className="text-grey-900 dark:text-[#F0F4FA] text-sm font-medium bg-grey-50 dark:bg-[#1B3055] rounded px-3 py-2 border border-grey-200 dark:border-[#243D6A]">
                 {title}
               </p>
             </div>
           </Card>
 
           <Card>
-            <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-3">
+            <p className="text-xs text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-3">
               Preview — first 5 rows (sorted)
             </p>
-            <div className="overflow-x-auto rounded-lg border border-grey-200 dark:border-gray-700">
+            <div className="overflow-x-auto rounded-lg border border-grey-200 dark:border-[#243D6A]">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ backgroundColor: '#1B3055', color: '#FFFFFF' }}>
@@ -508,13 +507,13 @@ const ExcelFormatterTool: React.FC = () => {
                 </thead>
                 <tbody>
                   {applicants.slice(0, 5).map((ap) => (
-                    <tr key={ap.sNo} className="border-t border-grey-100 dark:border-gray-700 even:bg-grey-50 dark:even:bg-gray-700/30">
-                      <td className="px-3 py-2 text-center text-grey-500 dark:text-gray-400 border-r border-grey-100 dark:border-gray-700">{ap.sNo}</td>
-                      <td className="px-3 py-2 text-center text-grey-900 dark:text-gray-100 border-r border-grey-100 dark:border-gray-700">{ap.name}</td>
-                      <td className="px-3 py-2 text-center text-grey-600 dark:text-gray-400 border-r border-grey-100 dark:border-gray-700">{ap.rollNo}</td>
-                      <td className="px-3 py-2 text-center text-grey-600 dark:text-gray-400 border-r border-grey-100 dark:border-gray-700">{ap.program}</td>
+                    <tr key={ap.sNo} className="border-t border-grey-100 dark:border-[#243D6A] even:bg-grey-50 dark:even:bg-gray-700/30">
+                      <td className="px-3 py-2 text-center text-grey-500 dark:text-[#6B7E95] border-r border-grey-100 dark:border-[#243D6A]">{ap.sNo}</td>
+                      <td className="px-3 py-2 text-center text-grey-900 dark:text-[#F0F4FA] border-r border-grey-100 dark:border-[#243D6A]">{ap.name}</td>
+                      <td className="px-3 py-2 text-center text-grey-600 dark:text-[#6B7E95] border-r border-grey-100 dark:border-[#243D6A]">{ap.rollNo}</td>
+                      <td className="px-3 py-2 text-center text-grey-600 dark:text-[#6B7E95] border-r border-grey-100 dark:border-[#243D6A]">{ap.program}</td>
                       {selectedHeaders.map(header => (
-                        <td key={header} className="px-3 py-2 text-center text-grey-600 dark:text-gray-400 border-r border-grey-100 dark:border-gray-700">
+                        <td key={header} className="px-3 py-2 text-center text-grey-600 dark:text-[#6B7E95] border-r border-grey-100 dark:border-[#243D6A]">
                           {ap.rawRow[header] ?? '-'}
                         </td>
                       ))}
@@ -524,7 +523,7 @@ const ExcelFormatterTool: React.FC = () => {
               </table>
             </div>
             {applicants.length > 5 && (
-              <p className="text-xs text-grey-400 dark:text-gray-500 mt-2 text-center">
+              <p className="text-xs text-grey-400 dark:text-[#6B7E95] mt-2 text-center">
                 +{applicants.length - 5} more rows in the download
               </p>
             )}
@@ -540,7 +539,7 @@ const ExcelFormatterTool: React.FC = () => {
               </Button>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="bg-navy hover:bg-navy-light text-white px-3 flex items-center transition-colors border-l border-white/10"
+                className="bg-navy hover:bg-navy-hover text-white px-3 flex items-center transition-colors border-l border-white/10"
                 title="Custom Columns"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -560,8 +559,8 @@ const ExcelFormatterTool: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <p className="text-grey-900 dark:text-gray-100 font-semibold text-lg">File downloaded!</p>
-          <p className="text-grey-400 dark:text-gray-500 text-sm mt-1">
+          <p className="text-grey-900 dark:text-[#F0F4FA] font-semibold text-lg">File downloaded!</p>
+          <p className="text-grey-400 dark:text-[#6B7E95] text-sm mt-1">
             {inputFileName.replace(/\.xlsx$/i, '_formatted.xlsx')}
           </p>
           <div className="flex justify-center gap-3 mt-6">
@@ -578,25 +577,25 @@ const ExcelFormatterTool: React.FC = () => {
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
-          <p className="text-sm text-grey-500 dark:text-gray-400">
+          <p className="text-sm text-grey-500 dark:text-[#6B7E95]">
             Select additional columns from the original file to include in the formatted export.
           </p>
 
-          <div className="max-h-60 overflow-y-auto border border-grey-200 dark:border-gray-600 rounded-lg p-3 space-y-2">
+          <div className="max-h-60 overflow-y-auto border border-grey-200 dark:border-[#243D6A] rounded-lg p-3 space-y-2">
             {availableHeaders.length > 0 ? (
               availableHeaders.map(header => (
-                <label key={header} className="flex items-center gap-3 p-2 hover:bg-grey-50 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors">
+                <label key={header} className="flex items-center gap-3 p-2 hover:bg-grey-50 dark:hover:bg-[#1B3055] rounded cursor-pointer transition-colors">
                   <input
                     type="checkbox"
                     checked={selectedHeaders.includes(header)}
                     onChange={() => toggleHeader(header)}
-                    className="w-4 h-4 text-navy border-grey-300 dark:border-gray-600 rounded focus:ring-navy dark:focus:ring-blue-500"
+                    className="w-4 h-4 text-navy border-grey-300 dark:border-[#243D6A] rounded focus:ring-navy dark:focus:ring-[#4A7FBF]"
                   />
-                  <span className="text-sm text-grey-700 dark:text-gray-300">{header}</span>
+                  <span className="text-sm text-grey-700 dark:text-[#A8B8CC]">{header}</span>
                 </label>
               ))
             ) : (
-              <p className="text-sm text-grey-400 dark:text-gray-500 text-center py-4">No additional columns found.</p>
+              <p className="text-sm text-grey-400 dark:text-[#6B7E95] text-center py-4">No additional columns found.</p>
             )}
           </div>
 

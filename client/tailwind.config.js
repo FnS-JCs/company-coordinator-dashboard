@@ -8,15 +8,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        navy: '#1B3055',
-        'navy-light': '#2A456F',
+        navy: {
+          DEFAULT: '#1B3055',
+          hover: '#243D6A',
+          light: '#EEF2F8',
+        },
         grey: {
-          50: '#F5F5F7',
-          200: '#E5E5EA',
-          500: '#6B7280',
-          900: '#1F2937',
-        }
-      }
+          50: '#F7F9FC',
+          100: '#EEF2F8',
+          200: '#DDE3EE',
+          400: '#8896A7',
+          500: '#4A5568',
+          700: '#374151',
+          900: '#0D1B2E',
+        },
+        success: '#0F9E6E',
+        warning: '#D97706',
+        danger: '#DC2626',
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+      },
     },
   },
   plugins: [],

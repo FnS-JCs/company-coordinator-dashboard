@@ -1,5 +1,6 @@
-import React, { useState, useCallback, useMemo } from 'react';
+﻿import React, { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 
@@ -154,16 +155,14 @@ const VCFGeneratorTool: React.FC = () => {
       <div className="flex items-center gap-3 mb-1">
         <button
           onClick={() => navigate(-1)}
-          className="text-grey-500 dark:text-gray-400 hover:text-grey-900 dark:hover:text-gray-100 transition-colors"
+          className="p-1.5 rounded-lg text-grey-400 dark:text-[#6B7E95] hover:text-grey-700 dark:hover:text-[#A8B8CC] hover:bg-grey-100 dark:hover:bg-[#1B3055] transition-all"
           aria-label="Go back"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft className="w-4 h-4" />
         </button>
-        <h1 className="text-2xl font-bold text-grey-900 dark:text-gray-100">VCF Generator</h1>
+        <h1 className="text-xl font-bold text-grey-900 dark:text-[#F0F4FA]">VCF Generator</h1>
       </div>
-      <p className="text-sm text-grey-500 dark:text-gray-400 mb-6 ml-8">
+      <p className="text-sm text-grey-500 dark:text-[#6B7E95] mb-6 ml-8">
         Enter contact details in the sheet below to generate VCF files.
       </p>
 
@@ -171,68 +170,68 @@ const VCFGeneratorTool: React.FC = () => {
         <div className="space-y-6">
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-grey-700 dark:text-gray-300 uppercase tracking-wider">Contact Sheet</h2>
-              <p className="text-xs text-grey-400 dark:text-gray-500 italic">Tip: You can paste data directly from Excel or Google Sheets</p>
+              <h2 className="text-sm font-semibold text-grey-700 dark:text-[#A8B8CC] uppercase tracking-wider">Contact Sheet</h2>
+              <p className="text-xs text-grey-400 dark:text-[#6B7E95] italic">Tip: You can paste data directly from Excel or Google Sheets</p>
             </div>
 
-            <div className="overflow-x-auto rounded-lg border border-grey-200 dark:border-gray-700">
+            <div className="overflow-x-auto rounded-lg border border-grey-200 dark:border-[#243D6A]">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="bg-grey-50 dark:bg-gray-700/50 border-b border-grey-200 dark:border-gray-700">
-                    <th className="w-12 py-2 px-3 text-xs font-bold text-grey-400 dark:text-gray-500 text-center border-r border-grey-200 dark:border-gray-700">#</th>
-                    <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Name</th>
-                    {specifyRole && <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Role</th>}
-                    <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Details</th>
-                    <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-gray-400 uppercase border-r border-grey-200 dark:border-gray-700">Number</th>
-                    <th className="w-10 py-2 px-3 border-grey-200 dark:border-gray-700"></th>
+                  <tr className="bg-grey-50 dark:bg-[#1B3055]/50 border-b border-grey-200 dark:border-[#243D6A]">
+                    <th className="w-12 py-2 px-3 text-xs font-bold text-grey-400 dark:text-[#6B7E95] text-center border-r border-grey-200 dark:border-[#243D6A]">#</th>
+                    <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-[#6B7E95] uppercase border-r border-grey-200 dark:border-[#243D6A]">Name</th>
+                    {specifyRole && <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-[#6B7E95] uppercase border-r border-grey-200 dark:border-[#243D6A]">Role</th>}
+                    <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-[#6B7E95] uppercase border-r border-grey-200 dark:border-[#243D6A]">Details</th>
+                    <th className="py-2 px-3 text-left text-xs font-bold text-grey-600 dark:text-[#6B7E95] uppercase border-r border-grey-200 dark:border-[#243D6A]">Number</th>
+                    <th className="w-10 py-2 px-3 border-grey-200 dark:border-[#243D6A]"></th>
                   </tr>
                 </thead>
                 <tbody onPaste={handlePaste}>
                   {gridData.map((row, idx) => (
-                    <tr key={idx} className="border-b border-grey-100 dark:border-gray-700 last:border-0 hover:bg-navy/5 dark:hover:bg-blue-900/10 transition-colors">
-                      <td className="py-1 px-3 text-xs text-grey-400 dark:text-gray-500 text-center border-r border-grey-100 dark:border-gray-700 bg-grey-50/50 dark:bg-gray-700/30">{idx + 1}</td>
-                      <td className="p-0 border-r border-grey-100 dark:border-gray-700">
+                    <tr key={idx} className="border-b border-grey-100 dark:border-[#243D6A] last:border-0 hover:bg-navy/5 dark:hover:bg-blue-900/10 transition-colors">
+                      <td className="py-1 px-3 text-xs text-grey-400 dark:text-[#6B7E95] text-center border-r border-grey-100 dark:border-[#243D6A] bg-grey-50/50 dark:bg-[#1B3055]/30">{idx + 1}</td>
+                      <td className="p-0 border-r border-grey-100 dark:border-[#243D6A]">
                         <input
                           type="text"
                           value={row.name}
                           onChange={(e) => handleGridChange(idx, 'name', e.target.value)}
-                          className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-blue-500 outline-none bg-transparent text-grey-900 dark:text-gray-100 placeholder-grey-400 dark:placeholder-gray-500"
+                          className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-[#4A7FBF] outline-none bg-transparent text-grey-900 dark:text-[#F0F4FA] placeholder-grey-400 dark:placeholder-[#6B7E95]"
                           placeholder="Full Name"
                         />
                       </td>
                       {specifyRole && (
-                        <td className="p-0 border-r border-grey-100 dark:border-gray-700">
+                        <td className="p-0 border-r border-grey-100 dark:border-[#243D6A]">
                           <input
                             type="text"
                             value={row.role}
                             onChange={(e) => handleGridChange(idx, 'role', e.target.value)}
-                            className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-blue-500 outline-none bg-transparent text-grey-900 dark:text-gray-100 placeholder-grey-400 dark:placeholder-gray-500"
+                            className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-[#4A7FBF] outline-none bg-transparent text-grey-900 dark:text-[#F0F4FA] placeholder-grey-400 dark:placeholder-[#6B7E95]"
                             placeholder="e.g. HR Manager"
                           />
                         </td>
                       )}
-                      <td className="p-0 border-r border-grey-100 dark:border-gray-700">
+                      <td className="p-0 border-r border-grey-100 dark:border-[#243D6A]">
                         <input
                           type="text"
                           value={row.company}
                           onChange={(e) => handleGridChange(idx, 'company', e.target.value)}
-                          className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-blue-500 outline-none bg-transparent text-grey-900 dark:text-gray-100 placeholder-grey-400 dark:placeholder-gray-500"
+                          className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-[#4A7FBF] outline-none bg-transparent text-grey-900 dark:text-[#F0F4FA] placeholder-grey-400 dark:placeholder-[#6B7E95]"
                           placeholder="Extra Details"
                         />
                       </td>
-                      <td className="p-0 border-r border-grey-100 dark:border-gray-700">
+                      <td className="p-0 border-r border-grey-100 dark:border-[#243D6A]">
                         <input
                           type="text"
                           value={row.number}
                           onChange={(e) => handleGridChange(idx, 'number', e.target.value)}
-                          className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-blue-500 outline-none bg-transparent text-grey-900 dark:text-gray-100 placeholder-grey-400 dark:placeholder-gray-500"
+                          className="w-full py-2 px-3 text-sm border-none focus:ring-1 focus:ring-inset focus:ring-navy dark:focus:ring-[#4A7FBF] outline-none bg-transparent text-grey-900 dark:text-[#F0F4FA] placeholder-grey-400 dark:placeholder-[#6B7E95]"
                           placeholder="+91..."
                         />
                       </td>
                       <td className="py-1 px-2 text-center">
                         <button
                           onClick={() => removeRow(idx)}
-                          className="text-grey-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                          className="text-grey-200 dark:text-[#243D6A] hover:text-danger dark:hover:text-[#EF4444] transition-colors"
                           title="Remove row"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,7 +247,7 @@ const VCFGeneratorTool: React.FC = () => {
 
             <button
               onClick={addRow}
-              className="mt-4 flex items-center gap-2 text-sm font-medium text-navy dark:text-blue-400 hover:text-navy-light dark:hover:text-blue-300 transition-colors"
+              className="mt-4 flex items-center gap-2 text-sm font-medium text-navy dark:text-[#4A7FBF] hover:text-navy-hover dark:hover:text-[#5A90D0] transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -264,11 +263,11 @@ const VCFGeneratorTool: React.FC = () => {
                   type="checkbox"
                   checked={specifyRole}
                   onChange={(e) => setSpecifyRole(e.target.checked)}
-                  className="w-4 h-4 text-navy border-grey-300 dark:border-gray-600 rounded focus:ring-navy dark:focus:ring-blue-500"
+                  className="w-4 h-4 text-navy border-grey-300 dark:border-[#243D6A] rounded focus:ring-navy dark:focus:ring-[#4A7FBF]"
                 />
                 <div>
-                  <p className="text-sm font-medium text-grey-900 dark:text-gray-100 group-hover:text-navy dark:group-hover:text-blue-400 transition-colors">Specify Role</p>
-                  <p className="text-xs text-grey-500 dark:text-gray-400">Include role in contact name (e.g. "Name | Role | Details")</p>
+                  <p className="text-sm font-medium text-grey-900 dark:text-[#F0F4FA] group-hover:text-navy dark:group-hover:text-[#4A7FBF] transition-colors">Specify Role</p>
+                  <p className="text-xs text-grey-500 dark:text-[#6B7E95]">Include role in contact name (e.g. "Name | Role | Details")</p>
                 </div>
               </label>
 
@@ -289,13 +288,13 @@ const VCFGeneratorTool: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div>
-                  <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Contacts</p>
-                  <p className="text-navy dark:text-blue-400 font-bold text-2xl">{contacts.length}</p>
+                  <p className="text-xs text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-0.5">Contacts</p>
+                  <p className="text-navy dark:text-[#4A7FBF] font-bold text-2xl">{contacts.length}</p>
                 </div>
-                <div className="h-10 w-px bg-grey-200 dark:bg-gray-700" />
+                <div className="h-10 w-px bg-grey-200 dark:bg-[#1B3055]" />
                 <div>
-                  <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Details</p>
-                  <p className="text-navy dark:text-blue-400 font-bold text-2xl">{companyCount}</p>
+                  <p className="text-xs text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-0.5">Details</p>
+                  <p className="text-navy dark:text-[#4A7FBF] font-bold text-2xl">{companyCount}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -306,10 +305,10 @@ const VCFGeneratorTool: React.FC = () => {
           </Card>
 
           <Card>
-            <p className="text-xs text-grey-400 dark:text-gray-500 uppercase tracking-wide mb-3">
+            <p className="text-xs text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-3">
               Preview — Ready to generate
             </p>
-            <div className="overflow-x-auto rounded-lg border border-grey-200 dark:border-gray-700">
+            <div className="overflow-x-auto rounded-lg border border-grey-200 dark:border-[#243D6A]">
               <table className="w-full text-sm">
                 <thead>
                   <tr style={{ backgroundColor: '#1B3055', color: '#FFFFFF' }}>
@@ -322,12 +321,12 @@ const VCFGeneratorTool: React.FC = () => {
                 </thead>
                 <tbody>
                   {contacts.map((contact, idx) => (
-                    <tr key={idx} className="border-t border-grey-100 dark:border-gray-700 even:bg-grey-50 dark:even:bg-gray-700/30">
-                      <td className="px-3 py-2 text-center text-grey-500 dark:text-gray-400 border-r border-grey-100 dark:border-gray-700">{idx + 1}</td>
-                      <td className="px-3 py-2 text-left text-grey-900 dark:text-gray-100 border-r border-grey-100 dark:border-gray-700">{contact.name}</td>
-                      {specifyRole && <td className="px-3 py-2 text-left text-grey-600 dark:text-gray-400 border-r border-grey-100 dark:border-gray-700">{contact.role}</td>}
-                      <td className="px-3 py-2 text-left text-grey-600 dark:text-gray-400 border-r border-grey-100 dark:border-gray-700">{contact.company}</td>
-                      <td className="px-3 py-2 text-left text-grey-600 dark:text-gray-400 font-mono">{contact.number}</td>
+                    <tr key={idx} className="border-t border-grey-100 dark:border-[#243D6A] even:bg-grey-50 dark:even:bg-gray-700/30">
+                      <td className="px-3 py-2 text-center text-grey-500 dark:text-[#6B7E95] border-r border-grey-100 dark:border-[#243D6A]">{idx + 1}</td>
+                      <td className="px-3 py-2 text-left text-grey-900 dark:text-[#F0F4FA] border-r border-grey-100 dark:border-[#243D6A]">{contact.name}</td>
+                      {specifyRole && <td className="px-3 py-2 text-left text-grey-600 dark:text-[#6B7E95] border-r border-grey-100 dark:border-[#243D6A]">{contact.role}</td>}
+                      <td className="px-3 py-2 text-left text-grey-600 dark:text-[#6B7E95] border-r border-grey-100 dark:border-[#243D6A]">{contact.company}</td>
+                      <td className="px-3 py-2 text-left text-grey-600 dark:text-[#6B7E95] font-mono">{contact.number}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -345,8 +344,8 @@ const VCFGeneratorTool: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-grey-900 dark:text-gray-100 mb-2">Downloads Started</h3>
-            <p className="text-grey-500 dark:text-gray-400 text-sm mb-6 max-w-sm mx-auto">
+            <h3 className="text-lg font-medium text-grey-900 dark:text-[#F0F4FA] mb-2">Downloads Started</h3>
+            <p className="text-grey-500 dark:text-[#6B7E95] text-sm mb-6 max-w-sm mx-auto">
               Your VCF files are being generated and downloaded. Check your browser's download folder.
             </p>
             <div className="flex justify-center gap-3">

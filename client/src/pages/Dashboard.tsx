@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Building2, Plus, Trash2 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { Card } from '../components/Card';
-import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
+import { Badge } from '../components/Badge';
 import { companyService, settingsService, gmailService } from '../services/api';
 import type { Company } from '../types';
 
@@ -37,8 +37,9 @@ const Dashboard: React.FC = () => {
 
       if (companiesData.length > 0) {
         const ids = companiesData.map((c: Company) => c.id);
-        gmailService.getUnreadCounts(ids)
-          .then(data => setUnreadCounts(data.counts))
+        gmailService
+          .getUnreadCounts(ids)
+          .then((data) => setUnreadCounts(data.counts))
           .catch(() => {});
       }
     } catch (error) {
@@ -50,8 +51,8 @@ const Dashboard: React.FC = () => {
 
   const placementCompanies = companies.filter((c) => c.type === 'placement');
   const internshipCompanies = companies.filter((c) => c.type === 'internship');
-
-  const displayedCompanies = activeTab === 'placement' ? placementCompanies : internshipCompanies;
+  const displayedCompanies =
+    activeTab === 'placement' ? placementCompanies : internshipCompanies;
 
   const handleCreateCompany = async () => {
     if (!companyName.trim()) return;
@@ -76,9 +77,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const addRound = () => {
-    setRounds([...rounds, { name: '', date: '' }]);
-  };
+  const addRound = () => setRounds([...rounds, { name: '', date: '' }]);
 
   const updateRound = (index: number, field: 'name' | 'date', value: string) => {
     const updated = [...rounds];
@@ -92,101 +91,142 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-grey-50 dark:bg-gray-900 flex items-center justify-center">
-        <p className="text-grey-500 dark:text-gray-400">Loading...</p>
+      <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E] flex">
+        <Sidebar onCreateCompany={() => setShowCreateModal(true)} />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-grey-400 dark:text-[#6B7E95] text-sm">Loading...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-grey-50 dark:bg-gray-900 flex">
+    <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E] flex">
       <Sidebar onCreateCompany={() => setShowCreateModal(true)} />
 
-      <main className="flex-1 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold text-grey-900 dark:text-gray-100">My Companies</h1>
-            <Badge>{academicYear}</Badge>
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-[1400px] mx-auto px-8 py-8">
+          {/* Page header */}
+          <div className="flex justify-between items-center mb-2">
+            <h1 className="text-xl font-bold text-grey-900 dark:text-[#F0F4FA]">My Companies</h1>
+            {academicYear && (
+              <span className="text-[11px] font-medium text-grey-400 dark:text-[#6B7E95] px-2.5 py-1 rounded-full border border-grey-200 dark:border-[#243D6A] uppercase tracking-wide">
+                {academicYear}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-grey-400 dark:text-[#6B7E95] mb-6">
+            {placementCompanies.length + internshipCompanies.length} companies assigned
+          </p>
+
+          {/* Tab bar */}
+          <div className="flex border-b border-grey-200 dark:border-[#243D6A] mb-6">
+            {(
+              [
+                { key: 'placement', count: placementCompanies.length },
+                { key: 'internship', count: internshipCompanies.length },
+              ] as const
+            ).map(({ key, count }) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`pb-3 px-1 mr-6 text-sm font-medium capitalize transition-all duration-150 border-b-2 -mb-px ${
+                  activeTab === key
+                    ? 'border-navy dark:border-[#4A7FBF] text-navy dark:text-[#4A7FBF]'
+                    : 'border-transparent text-grey-400 dark:text-[#6B7E95] hover:text-grey-900 dark:hover:text-[#A8B8CC]'
+                }`}
+              >
+                {key}
+                <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded-full bg-grey-100 dark:bg-[#1B3055] text-grey-500 dark:text-[#A8B8CC]">
+                  {count}
+                </span>
+              </button>
+            ))}
           </div>
 
-          <div className="flex border-b border-grey-200 dark:border-gray-700 mb-6">
-            <button
-              onClick={() => setActiveTab('placement')}
-              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === 'placement'
-                  ? 'text-navy dark:text-blue-400 border-b-2 border-navy dark:border-blue-400'
-                  : 'text-grey-500 dark:text-gray-400 hover:text-grey-700 dark:hover:text-gray-200'
-              }`}
-            >
-              Placement ({placementCompanies.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('internship')}
-              className={`px-6 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === 'internship'
-                  ? 'text-navy dark:text-blue-400 border-b-2 border-navy dark:border-blue-400'
-                  : 'text-grey-500 dark:text-gray-400 hover:text-grey-700 dark:hover:text-gray-200'
-              }`}
-            >
-              Internship ({internshipCompanies.length})
-            </button>
-          </div>
-
+          {/* Company grid */}
           {displayedCompanies.length === 0 ? (
-            <Card className="text-center py-12">
-              <p className="text-grey-500 dark:text-gray-400">No {activeTab} companies assigned yet. Contact your coordinator.</p>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-12 h-12 rounded-full bg-grey-100 dark:bg-[#1B3055] flex items-center justify-center mb-4">
+                <Building2 className="w-5 h-5 text-grey-400 dark:text-[#6B7E95]" />
+              </div>
+              <p className="text-sm font-medium text-grey-500 dark:text-[#A8B8CC]">
+                No {activeTab} companies assigned
+              </p>
+              <p className="text-xs text-grey-400 dark:text-[#6B7E95] mt-1">
+                Contact your coordinator to get started.
+              </p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayedCompanies.map((company) => (
-                <Card
-                  key={company.id}
-                  onClick={() => navigate(`/dashboard/company/${company.id}`)}
-                  className="relative"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-grey-900 dark:text-gray-100">{company.name}</h3>
-                    <Badge variant={company.type === 'placement' ? 'success' : 'warning'}>
-                      {company.type === 'placement' ? 'Placement' : 'Internship'}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-grey-500 dark:text-gray-400">{company.rounds.length} rounds</p>
-                  {company.delegatedToJcEmail && (
-                    <p className="text-xs text-grey-500 dark:text-gray-400 mt-1">
-                      Delegated to JC
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between mt-3">
-                    <p className="text-navy dark:text-blue-400 text-sm font-medium">Open</p>
-                    {unreadCounts[company.id] > 0 && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold text-white bg-red-500 rounded-full">
-                        {unreadCounts[company.id]} unread
+              {displayedCompanies.map((company) => {
+                const unread = unreadCounts[company.id] || 0;
+                return (
+                  <div
+                    key={company.id}
+                    onClick={() => navigate(`/dashboard/company/${company.id}`)}
+                    className="group relative bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] p-5 cursor-pointer transition-all duration-150 hover:shadow-sm hover:border-grey-400 dark:hover:border-[#4A7FBF]"
+                  >
+                    {/* Unread badge — absolute top right */}
+                    {unread > 0 && (
+                      <span className="absolute top-3 right-3 flex items-center justify-center w-5 h-5 rounded-full bg-danger text-white text-[11px] font-semibold">
+                        {unread > 9 ? '9+' : unread}
                       </span>
                     )}
+
+                    {/* Company name */}
+                    <h3 className="text-[15px] font-semibold text-grey-900 dark:text-[#F0F4FA] leading-tight pr-6">
+                      {company.name}
+                    </h3>
+
+                    {/* Badges row */}
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant={company.type === 'placement' ? 'navy' : 'default'}>
+                        {company.type}
+                      </Badge>
+                      {company.delegatedToJcEmail && (
+                        <Badge variant="warning">Delegated</Badge>
+                      )}
+                    </div>
+
+                    {/* Round count */}
+                    <div className="flex items-center gap-1.5 mt-3">
+                      <Building2 className="w-3.5 h-3.5 text-grey-400 dark:text-[#6B7E95]" />
+                      <span className="text-xs text-grey-400 dark:text-[#6B7E95]">
+                        {company.rounds.length} round{company.rounds.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    {/* Open button — appears on hover */}
+                    <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                      <div className="w-full h-8 flex items-center justify-center rounded-lg bg-navy dark:bg-[#4A7FBF] text-white text-[12px] font-semibold">
+                        Open
+                      </div>
+                    </div>
                   </div>
-                </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </main>
 
+      {/* Created labels toast */}
       {createdLabels && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg bg-white dark:bg-gray-800 border border-green-200 dark:border-green-800 shadow-lg rounded-xl p-4">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg bg-white dark:bg-[#122240] border border-grey-200 dark:border-[#243D6A] shadow-xl rounded-xl p-4">
           <div className="flex justify-between items-start gap-4">
             <div>
-              <p className="font-semibold text-grey-900 dark:text-gray-100 mb-2">
-                Company created. Ask GRC to apply these two labels to relevant emails:
+              <p className="font-semibold text-grey-900 dark:text-[#F0F4FA] text-sm mb-2">
+                Company created. Ask GRC to apply these labels to relevant emails:
               </p>
-              <ol className="list-decimal list-inside space-y-1 text-sm font-mono text-grey-800 dark:text-gray-300">
+              <ol className="list-decimal list-inside space-y-1 text-sm font-mono text-grey-700 dark:text-[#A8B8CC]">
                 <li>{createdLabels.labelSc}</li>
                 <li>{createdLabels.labelCompany}</li>
               </ol>
             </div>
             <button
               onClick={() => setCreatedLabels(null)}
-              className="text-grey-400 dark:text-gray-500 hover:text-grey-700 dark:hover:text-gray-300 shrink-0 text-lg leading-none"
-              aria-label="Dismiss"
+              className="text-grey-400 hover:text-grey-700 dark:text-[#6B7E95] dark:hover:text-[#A8B8CC] shrink-0 text-lg leading-none"
             >
               &times;
             </button>
@@ -194,6 +234,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Create Company Modal */}
       <Modal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
@@ -201,76 +242,79 @@ const Dashboard: React.FC = () => {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-grey-900 dark:text-gray-200 mb-1">Company Name</label>
+            <label className="block text-[13px] font-medium text-grey-700 dark:text-[#A8B8CC] mb-1">
+              Company Name
+            </label>
             <input
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full px-3 py-2 border border-grey-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-grey-900 dark:text-gray-100 placeholder-grey-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-navy dark:focus:ring-blue-500"
+              className="w-full h-10 px-3 border border-grey-200 dark:border-[#243D6A] rounded-lg bg-white dark:bg-[#0D1B2E] text-grey-900 dark:text-[#F0F4FA] placeholder-grey-400 dark:placeholder-[#6B7E95] text-sm focus:outline-none focus:ring-2 focus:ring-navy dark:focus:ring-[#4A7FBF]"
               placeholder="Enter company name"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-grey-900 dark:text-gray-200 mb-1">Type</label>
+            <label className="block text-[13px] font-medium text-grey-700 dark:text-[#A8B8CC] mb-2">
+              Type
+            </label>
             <div className="flex gap-4">
-              <label className="flex items-center text-grey-900 dark:text-gray-200">
-                <input
-                  type="radio"
-                  checked={companyType === 'placement'}
-                  onChange={() => setCompanyType('placement')}
-                  className="mr-2"
-                />
-                Placement
-              </label>
-              <label className="flex items-center text-grey-900 dark:text-gray-200">
-                <input
-                  type="radio"
-                  checked={companyType === 'internship'}
-                  onChange={() => setCompanyType('internship')}
-                  className="mr-2"
-                />
-                Internship
-              </label>
+              {(['placement', 'internship'] as const).map((type) => (
+                <label key={type} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    checked={companyType === type}
+                    onChange={() => setCompanyType(type)}
+                    className="accent-navy"
+                  />
+                  <span className="text-sm text-grey-700 dark:text-[#A8B8CC] capitalize">
+                    {type}
+                  </span>
+                </label>
+              ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-grey-900 dark:text-gray-200 mb-1">Rounds</label>
-            {rounds.map((round, index) => (
-              <div key={index} className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  value={round.name}
-                  onChange={(e) => updateRound(index, 'name', e.target.value)}
-                  placeholder="Round name"
-                  className="flex-1 px-3 py-2 border border-grey-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-grey-900 dark:text-gray-100 placeholder-grey-400 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-navy dark:focus:ring-blue-500"
-                />
-                <input
-                  type="date"
-                  value={round.date}
-                  onChange={(e) => updateRound(index, 'date', e.target.value)}
-                  className="flex-1 px-3 py-2 border border-grey-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-grey-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-navy dark:focus:ring-blue-500"
-                />
-                {rounds.length > 1 && (
-                  <button
-                    onClick={() => removeRound(index)}
-                    className="text-red-500 hover:text-red-600"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            ))}
+            <label className="block text-[13px] font-medium text-grey-700 dark:text-[#A8B8CC] mb-2">
+              Rounds
+            </label>
+            <div className="space-y-2">
+              {rounds.map((round, index) => (
+                <div key={index} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={round.name}
+                    onChange={(e) => updateRound(index, 'name', e.target.value)}
+                    placeholder="Round name"
+                    className="flex-1 h-10 px-3 border border-grey-200 dark:border-[#243D6A] rounded-lg bg-white dark:bg-[#0D1B2E] text-grey-900 dark:text-[#F0F4FA] placeholder-grey-400 dark:placeholder-[#6B7E95] text-sm focus:outline-none focus:ring-2 focus:ring-navy dark:focus:ring-[#4A7FBF]"
+                  />
+                  <input
+                    type="date"
+                    value={round.date}
+                    onChange={(e) => updateRound(index, 'date', e.target.value)}
+                    className="flex-1 h-10 px-3 border border-grey-200 dark:border-[#243D6A] rounded-lg bg-white dark:bg-[#0D1B2E] text-grey-900 dark:text-[#F0F4FA] text-sm focus:outline-none focus:ring-2 focus:ring-navy dark:focus:ring-[#4A7FBF]"
+                  />
+                  {rounds.length > 1 && (
+                    <button
+                      onClick={() => removeRound(index)}
+                      className="p-2 text-grey-400 hover:text-danger transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
             <button
               onClick={addRound}
-              className="text-navy dark:text-blue-400 text-sm hover:underline mt-2"
+              className="mt-2 flex items-center gap-1.5 text-[13px] font-medium text-navy dark:text-[#4A7FBF] hover:underline"
             >
-              + Add Round
+              <Plus className="w-3.5 h-3.5" /> Add Round
             </button>
           </div>
 
-          <div className="flex justify-end gap-3 mt-6">
+          <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
               Cancel
             </Button>

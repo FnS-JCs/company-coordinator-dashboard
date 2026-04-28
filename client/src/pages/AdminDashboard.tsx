@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, Plus, Pencil, Trash2, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Card } from '../components/Card';
 import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
 import { userService, gmailService, settingsService } from '../services/api';
 import type { User } from '../types';
+
+const inputCls =
+  'w-full h-10 px-3 border border-grey-200 dark:border-[#243D6A] rounded-lg bg-white dark:bg-[#0D1B2E] text-grey-900 dark:text-[#F0F4FA] placeholder-grey-400 dark:placeholder-[#6B7E95] text-sm focus:outline-none focus:ring-2 focus:ring-navy dark:focus:ring-[#4A7FBF]';
 
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +19,17 @@ const AdminDashboard: React.FC = () => {
   const [gmailStatus, setGmailStatus] = useState<{ connected: boolean; email?: string }>({ connected: false });
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [userForm, setUserForm] = useState({ name: '', email: '', phone: '', role: 'junior_coordinator' as const });
+  const [userForm, setUserForm] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    role: 'admin' | 'senior_coordinator' | 'junior_coordinator';
+  }>({
+    name: '',
+    email: '',
+    phone: '',
+    role: 'junior_coordinator',
+  });
   const [adminEmail, setAdminEmail] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -36,14 +49,9 @@ const AdminDashboard: React.FC = () => {
         settingsService.getAdminEmail(),
       ]);
 
-      // Deduplicate users by email
       const uniqueUsers = usersData.reduce((acc: User[], current: User) => {
-        const x = acc.find(item => item.email === current.email);
-        if (!x) {
-          return acc.concat([current]);
-        } else {
-          return acc;
-        }
+        const x = acc.find((item) => item.email === current.email);
+        return x ? acc : acc.concat([current]);
       }, []);
 
       setUsers(uniqueUsers);
@@ -91,9 +99,9 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const handleEditUser = (user: User) => {
-    setEditingUser(user);
-    setUserForm({ name: user.name, email: user.email, phone: user.phone || '', role: user.role });
+  const handleEditUser = (u: User) => {
+    setEditingUser(u);
+    setUserForm({ name: u.name, email: u.email, phone: u.phone || '', role: u.role });
     setShowUserModal(true);
   };
 
@@ -109,10 +117,9 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleUpdateAdminEmail = async () => {
-    const newEmail = adminEmail;
-    if (!confirm(`Transferring admin to ${newEmail}. You will lose admin access.`)) return;
+    if (!confirm(`Transferring admin to ${adminEmail}. You will lose admin access.`)) return;
     try {
-      await settingsService.updateAdminEmail(newEmail);
+      await settingsService.updateAdminEmail(adminEmail);
       alert('Admin email updated. Please log in again.');
       localStorage.clear();
       window.location.href = '/login';
@@ -121,200 +128,279 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const tabs = [
+    { key: 'users', label: 'Users' },
+    { key: 'grc', label: 'GRC Inbox' },
+    { key: 'settings', label: 'Admin Settings' },
+  ] as const;
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-grey-50 flex items-center justify-center">
-        <p className="text-grey-500">Loading...</p>
+      <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E] flex items-center justify-center">
+        <p className="text-grey-400 dark:text-[#6B7E95] text-sm">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-grey-50">
-      <header className="bg-white border-b border-grey-200 px-8 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-grey-900">Admin Dashboard</h1>
-          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-          </Button>
+    <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E]">
+      {/* Header */}
+      <header className="bg-white dark:bg-[#122240] border-b border-grey-200 dark:border-[#243D6A] px-8 py-0">
+        <div className="max-w-[1400px] mx-auto h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className="w-4 h-4 text-grey-400 dark:text-[#6B7E95]" />
+            <h1 className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA]">
+              Admin Panel
+            </h1>
+          </div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-1.5 text-sm font-medium text-grey-400 dark:text-[#6B7E95] hover:text-grey-700 dark:hover:text-[#A8B8CC] transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Dashboard
+          </button>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-8 py-6">
-        <div className="flex gap-4 border-b border-grey-200 mb-6">
-          {['users', 'grc', 'settings'].map((tab) => (
+      <div className="max-w-[1400px] mx-auto px-8 py-6">
+        {/* Underline tab bar */}
+        <div className="flex border-b border-grey-200 dark:border-[#243D6A] mb-6">
+          {tabs.map(({ key, label }) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab as typeof activeTab)}
-              className={`pb-3 px-1 text-sm font-medium capitalize transition-colors ${
-                activeTab === tab
-                  ? 'text-navy border-b-2 border-navy'
-                  : 'text-grey-500 hover:text-grey-900'
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`pb-3 px-1 mr-6 text-sm font-medium transition-all duration-150 border-b-2 -mb-px ${
+                activeTab === key
+                  ? 'border-navy dark:border-[#4A7FBF] text-navy dark:text-[#4A7FBF]'
+                  : 'border-transparent text-grey-400 dark:text-[#6B7E95] hover:text-grey-900 dark:hover:text-[#A8B8CC]'
               }`}
             >
-              {tab === 'grc' ? 'GRC Inbox' : tab === 'users' ? 'Users' : 'Admin Settings'}
+              {label}
             </button>
           ))}
         </div>
 
+        {/* Users tab */}
         {activeTab === 'users' && (
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-grey-900">Users</h2>
-              <Button variant="primary" onClick={() => { setEditingUser(null); setUserForm({ name: '', email: '', phone: '', role: 'junior_coordinator' }); setShowUserModal(true); }}>
-                + Add User
+              <div>
+                <h2 className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA]">Users</h2>
+                <p className="text-[12px] text-grey-400 dark:text-[#6B7E95] mt-0.5">
+                  {users.length} member{users.length !== 1 ? 's' : ''} with access
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setEditingUser(null);
+                  setUserForm({ name: '', email: '', phone: '', role: 'junior_coordinator' });
+                  setShowUserModal(true);
+                }}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1.5" />
+                Add User
               </Button>
             </div>
 
-            <Card>
+            <div className="bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-grey-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-grey-500">Name</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-grey-500">Email</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-grey-500">Phone</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-grey-500">Role</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-grey-500">Added On</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-grey-500">Actions</th>
+                  <tr className="border-b border-grey-200 dark:border-[#243D6A]">
+                    {['Name', 'Email', 'Phone', 'Role', 'Added On', ''].map((h) => (
+                      <th
+                        key={h}
+                        className={`py-3 px-4 text-[11px] font-semibold text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide ${
+                          h === '' ? 'text-right' : 'text-left'
+                        }`}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u) => {
                     const isSelf = u.email === user?.email;
                     return (
-                      <tr key={u.id} className="border-b border-grey-100 last:border-0">
-                        <td className="py-3 px-4 text-sm text-grey-900">{u.name}</td>
-                        <td className="py-3 px-4 text-sm text-grey-500">{u.email}</td>
-                        <td className="py-3 px-4 text-sm text-grey-500">{u.phone || '-'}</td>
-                        <td className="py-3 px-4">
-                          <Badge variant={u.role === 'admin' ? 'warning' : u.role === 'senior_coordinator' ? 'success' : 'default'}>
+                      <tr
+                        key={u.id}
+                        className="border-b border-grey-100 dark:border-[#243D6A]/40 last:border-0 hover:bg-grey-50 dark:hover:bg-[#1B3055]/30 transition-colors"
+                      >
+                        <td className="py-3.5 px-4 text-sm font-medium text-grey-900 dark:text-[#F0F4FA]">
+                          {u.name}
+                        </td>
+                        <td className="py-3.5 px-4 text-sm text-grey-500 dark:text-[#A8B8CC]">
+                          {u.email}
+                        </td>
+                        <td className="py-3.5 px-4 text-sm text-grey-500 dark:text-[#A8B8CC]">
+                          {u.phone || <span className="text-grey-300 dark:text-[#6B7E95]">—</span>}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <Badge
+                            variant={
+                              u.role === 'admin'
+                                ? 'warning'
+                                : u.role === 'senior_coordinator'
+                                ? 'navy'
+                                : 'default'
+                            }
+                          >
                             {u.role?.replace('_', ' ')}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-sm text-grey-500">
-                          {u.createdAt ? (
-                            (() => {
-                              const date = (u.createdAt as any).toDate ? (u.createdAt as any).toDate() : new Date(u.createdAt);
-                              return date.toLocaleDateString();
-                            })()
-                          ) : '-'}
+                        <td className="py-3.5 px-4 text-sm text-grey-400 dark:text-[#6B7E95]">
+                          {u.createdAt
+                            ? (() => {
+                                const d = (u.createdAt as any).toDate
+                                  ? (u.createdAt as any).toDate()
+                                  : new Date(u.createdAt);
+                                return d.toLocaleDateString('en-IN', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                });
+                              })()
+                            : <span className="text-grey-300 dark:text-[#6B7E95]">—</span>}
                         </td>
-                        <td className="py-3 px-4 text-right">
-                          <button onClick={() => handleEditUser(u)} className="text-navy hover:underline text-sm mr-3">
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteUser(u.id)} 
-                            className={`${isSelf ? 'text-grey-300 cursor-not-allowed' : 'text-red-500 hover:underline'} text-sm`}
-                            disabled={isSelf}
-                            title={isSelf ? 'Cannot remove your own account' : ''}
-                          >
-                            Remove
-                          </button>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => handleEditUser(u)}
+                              className="flex items-center gap-1 h-7 px-2.5 rounded text-[12px] font-medium text-grey-500 dark:text-[#A8B8CC] hover:bg-grey-100 dark:hover:bg-[#1B3055] transition-colors"
+                            >
+                              <Pencil className="w-3 h-3" /> Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteUser(u.id)}
+                              disabled={isSelf}
+                              title={isSelf ? 'Cannot remove your own account' : ''}
+                              className={`flex items-center gap-1 h-7 px-2.5 rounded text-[12px] font-medium transition-colors ${
+                                isSelf
+                                  ? 'text-grey-300 dark:text-[#6B7E95] cursor-not-allowed'
+                                  : 'text-danger dark:text-[#EF4444] hover:bg-red-50 dark:hover:bg-red-900/20'
+                              }`}
+                            >
+                              <Trash2 className="w-3 h-3" /> Remove
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
-            </Card>
+            </div>
           </div>
         )}
 
+        {/* GRC tab */}
         {activeTab === 'grc' && (
-          <div>
-            <h2 className="text-lg font-semibold text-grey-900 mb-4">GRC Inbox Connection</h2>
-            <Card>
+          <div className="max-w-lg">
+            <h2 className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA] mb-4">
+              GRC Inbox Connection
+            </h2>
+            <div className="bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] p-5">
               {gmailStatus.connected ? (
                 <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-green-600 font-medium">Connected</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full bg-success" />
+                    <span className="text-sm font-medium text-success dark:text-[#10B981]">
+                      Connected
+                    </span>
                   </div>
-                  <p className="text-grey-500 mb-4">Connected as: {gmailStatus.email}</p>
+                  <p className="text-sm text-grey-500 dark:text-[#A8B8CC] mb-4">
+                    {gmailStatus.email}
+                  </p>
                   <Button variant="danger" onClick={handleDisconnectGmail}>
                     Disconnect
                   </Button>
                 </div>
               ) : (
                 <div>
-                  <p className="text-grey-500 mb-4">Connect your GRC Gmail account to sync company emails.</p>
+                  <p className="text-sm text-grey-500 dark:text-[#A8B8CC] mb-4">
+                    Connect your GRC Gmail account to sync company emails.
+                  </p>
                   <Button variant="primary" onClick={handleConnectGmail}>
-                    Connect GRC Gmail Account
+                    Connect GRC Gmail
                   </Button>
                 </div>
               )}
-            </Card>
+            </div>
           </div>
         )}
 
+        {/* Settings tab */}
         {activeTab === 'settings' && (
-          <div>
-            <h2 className="text-lg font-semibold text-grey-900 mb-4">Admin Settings</h2>
-            <Card>
+          <div className="max-w-lg">
+            <h2 className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA] mb-4">
+              Admin Settings
+            </h2>
+            <div className="bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] p-5">
               <div>
-                <label className="block text-sm font-medium text-grey-900 mb-1">Admin Email</label>
+                <label className="block text-[13px] font-medium text-grey-700 dark:text-[#A8B8CC] mb-1">
+                  Admin Email
+                </label>
                 <input
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full max-w-md px-3 py-2 border border-grey-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy mb-4"
+                  className={inputCls + ' max-w-sm mb-4'}
                 />
+                <br />
                 <Button variant="primary" onClick={handleUpdateAdminEmail}>
                   Save
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
       </div>
 
+      {/* Add / Edit User Modal */}
       <Modal
         isOpen={showUserModal}
         onClose={() => setShowUserModal(false)}
         title={editingUser ? 'Edit User' : 'Add User'}
+        maxWidth="max-w-[480px]"
       >
         <div className="space-y-4">
+          {[
+            { label: 'Name', type: 'text', key: 'name', placeholder: 'Full name' },
+            { label: 'Email', type: 'email', key: 'email', placeholder: 'user@srcc.du.ac.in' },
+            { label: 'Phone', type: 'tel', key: 'phone', placeholder: '+91 ...' },
+          ].map(({ label, type, key, placeholder }) => (
+            <div key={key}>
+              <label className="block text-[13px] font-medium text-grey-700 dark:text-[#A8B8CC] mb-1">
+                {label}
+              </label>
+              <input
+                type={type}
+                value={(userForm as any)[key]}
+                onChange={(e) => setUserForm({ ...userForm, [key]: e.target.value })}
+                placeholder={placeholder}
+                className={inputCls}
+              />
+            </div>
+          ))}
+
           <div>
-            <label className="block text-sm font-medium text-grey-900 mb-1">Name</label>
-            <input
-              type="text"
-              value={userForm.name}
-              onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-              className="w-full px-3 py-2 border border-grey-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-grey-900 mb-1">Email</label>
-            <input
-              type="email"
-              value={userForm.email}
-              onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-              className="w-full px-3 py-2 border border-grey-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-grey-900 mb-1">Phone</label>
-            <input
-              type="tel"
-              value={userForm.phone}
-              onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
-              className="w-full px-3 py-2 border border-grey-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-grey-900 mb-1">Role</label>
+            <label className="block text-[13px] font-medium text-grey-700 dark:text-[#A8B8CC] mb-1">
+              Role
+            </label>
             <select
               value={userForm.role}
               onChange={(e) => setUserForm({ ...userForm, role: e.target.value as any })}
-              className="w-full px-3 py-2 border border-grey-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy"
+              className={inputCls}
             >
               <option value="admin">Admin</option>
               <option value="senior_coordinator">Senior Coordinator</option>
               <option value="junior_coordinator">Junior Coordinator</option>
             </select>
           </div>
-          <div className="flex justify-end gap-3 mt-6">
+
+          <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setShowUserModal(false)}>
               Cancel
             </Button>

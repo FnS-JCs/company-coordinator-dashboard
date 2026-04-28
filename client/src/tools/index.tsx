@@ -26,7 +26,7 @@ export const toolRoutes = tools.map(({ path, component: Component }) => (
     key={path}
     path={path}
     element={
-      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-gray-900 dark:text-gray-100">Loading...</div>}>
+      <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-grey-50 dark:bg-[#0D1B2E]"><span className="text-sm text-grey-400 dark:text-[#6B7E95]">Loading...</span></div>}>
         <ToolLayout>
           <Component />
         </ToolLayout>

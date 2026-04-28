@@ -14,7 +14,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boole
   const { user, devRole, loading } = useAuth();
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center dark:bg-gray-900 dark:text-gray-100">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-grey-50 dark:bg-[#0D1B2E]">
+        <span className="text-sm text-grey-400 dark:text-[#6B7E95]">Loading...</span>
+      </div>
+    );
   }
 
   if (!user && !devRole) {
@@ -58,7 +62,7 @@ function App() {
     <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center dark:bg-gray-900 dark:text-gray-100">Loading...</div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-grey-50 dark:bg-[#0D1B2E]"><span className="text-sm text-grey-400 dark:text-[#6B7E95]">Loading...</span></div>}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route

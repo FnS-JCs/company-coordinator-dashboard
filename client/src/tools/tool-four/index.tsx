@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, MoreHorizontal } from 'lucide-react';
 import { Card } from '../../components/Card';
 
 const ToolFour: React.FC = () => {
@@ -7,24 +8,25 @@ const ToolFour: React.FC = () => {
 
   return (
     <div className="p-8">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-1">
         <button
           onClick={() => navigate(-1)}
-          className="text-grey-500 dark:text-gray-400 hover:text-grey-900 dark:hover:text-gray-100 transition-colors"
+          className="p-1.5 rounded-lg text-grey-400 dark:text-[#6B7E95] hover:text-grey-700 dark:hover:text-[#A8B8CC] hover:bg-grey-100 dark:hover:bg-[#1B3055] transition-all"
           aria-label="Go back"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft className="w-4 h-4" />
         </button>
-        <h1 className="text-2xl font-bold text-grey-900 dark:text-gray-100">Tool 4</h1>
+        <h1 className="text-xl font-bold text-grey-900 dark:text-[#F0F4FA]">
+          More Tools
+        </h1>
       </div>
-      <Card>
-        <p className="text-grey-500 dark:text-gray-400">
-          This tool is pending implementation. Check back later.
-        </p>
-        <p className="text-sm text-grey-400 dark:text-gray-500 mt-2">
-          Drop implementation into /client/src/tools/tool-four/ and /server/src/tools/tool-four/
+      <p className="text-sm text-grey-400 dark:text-[#6B7E95] mb-6 ml-10">
+        Coming soon.
+      </p>
+      <Card className="flex items-center gap-3">
+        <MoreHorizontal className="w-4 h-4 text-grey-400 dark:text-[#6B7E95]" />
+        <p className="text-sm text-grey-500 dark:text-[#A8B8CC]">
+          Additional tools are in development. Check back later.
         </p>
       </Card>
     </div>
