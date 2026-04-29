@@ -56,7 +56,19 @@ export interface EmailReadStatus {
 }
 
 export interface DevUser {
+  uid: string;
   email: string;
   role: 'admin' | 'senior_coordinator' | 'junior_coordinator';
   name: string;
+}
+
+export interface WhatsAppMessage {
+  id: string;
+  recipientName: string;
+  recipientPhone: string;
+  messageContent: string;
+  acknowledgementStatus: 'delivered' | 'failed' | 'pending';
+  sentAt: string | Date;
+  companyId?: string;
+  userId?: string;
 }

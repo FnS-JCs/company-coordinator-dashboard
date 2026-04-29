@@ -15,15 +15,6 @@ interface ApplicantRow {
   rawRow: Record<string, any>;
 }
 
-const COURSE_ORDER: Record<string, number> = {
-  'Bachelors in Commerce - Commerce': 1,
-  'Bachelors in Economics - Economics': 2,
-};
-
-const COURSE_TO_PROGRAM: Record<string, string> = {
-  'Bachelors in Commerce - Commerce': 'B.Com. (Hons.)',
-  'Bachelors in Economics - Economics': 'B.A. (Hons.) Economics',
-};
 
 function normalizeProgram(course: string, rawProgram: string): string {
   const c = course.toLowerCase();
@@ -274,7 +265,7 @@ function buildWorkbook(title: string, applicants: ApplicantRow[], customColumns:
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
   // AutoFit calculation for data columns
-  const wscols = headers.map((header, i) => {
+  const wscols = headers.map((header) => {
     let maxLen = header.length;
     
     // Check all data rows for this column
@@ -331,7 +322,7 @@ function buildWorkbook(title: string, applicants: ApplicantRow[], customColumns:
 
   const workbook = XLSX.utils.book_new();
   workbook.Workbook = {
-    Views: [{ showGridLines: false }]
+    Views: [{}]
   };
   XLSX.utils.book_append_sheet(workbook, ws, 'Applicant List');
   return workbook;
