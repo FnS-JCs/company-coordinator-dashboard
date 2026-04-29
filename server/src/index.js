@@ -35,3 +35,5 @@ app.listen(PORT, () => {
     console.log('DEV MODE: Auth bypass enabled')
   }
 })
+
+export default app
