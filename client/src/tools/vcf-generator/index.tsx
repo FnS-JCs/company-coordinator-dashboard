@@ -154,7 +154,7 @@ const VCFGeneratorTool: React.FC = () => {
     <div className="p-8">
       <div className="flex items-center gap-3 mb-1">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/dashboard')}
           className="p-1.5 rounded-lg text-grey-400 dark:text-[#6B7E95] hover:text-grey-700 dark:hover:text-[#A8B8CC] hover:bg-grey-100 dark:hover:bg-[#1B3055] transition-all"
           aria-label="Go back"
         >

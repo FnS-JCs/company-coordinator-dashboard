@@ -11,6 +11,13 @@ import type { User } from '../types';
 const inputCls =
   'w-full h-10 px-3 border border-grey-200 dark:border-[#243D6A] rounded-lg bg-white dark:bg-[#0D1B2E] text-grey-900 dark:text-[#F0F4FA] placeholder-grey-400 dark:placeholder-[#6B7E95] text-sm focus:outline-none focus:ring-2 focus:ring-navy dark:focus:ring-[#4A7FBF]';
 
+const formatDate = (timestamp: any): string | null => {
+  if (!timestamp) return null;
+  if (timestamp?.toDate) return timestamp.toDate().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  if (timestamp?.seconds) return new Date(timestamp.seconds * 1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return null;
+};
+
 const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -228,13 +235,13 @@ const AdminDashboard: React.FC = () => {
                         key={u.id}
                         className="border-b border-grey-100 dark:border-[#243D6A]/40 last:border-0 hover:bg-grey-50 dark:hover:bg-[#1B3055]/30 transition-colors"
                       >
-                        <td className="py-3.5 px-4 text-sm font-medium text-grey-900 dark:text-[#F0F4FA]">
+                        <td className="py-3.5 px-4 text-[14px] font-medium text-grey-900 dark:text-[#F0F4FA]">
                           {u.name}
                         </td>
-                        <td className="py-3.5 px-4 text-sm text-grey-500 dark:text-[#A8B8CC]">
+                        <td className="py-3.5 px-4 text-[14px] text-grey-500 dark:text-[#A8B8CC]">
                           {u.email}
                         </td>
-                        <td className="py-3.5 px-4 text-sm text-grey-500 dark:text-[#A8B8CC]">
+                        <td className="py-3.5 px-4 text-[14px] text-grey-500 dark:text-[#A8B8CC]">
                           {u.phone || <span className="text-grey-300 dark:text-[#6B7E95]">—</span>}
                         </td>
                         <td className="py-3.5 px-4">
@@ -250,19 +257,8 @@ const AdminDashboard: React.FC = () => {
                             {u.role?.replace('_', ' ')}
                           </Badge>
                         </td>
-                        <td className="py-3.5 px-4 text-sm text-grey-400 dark:text-[#6B7E95]">
-                          {u.createdAt
-                            ? (() => {
-                                const d = (u.createdAt as any).toDate
-                                  ? (u.createdAt as any).toDate()
-                                  : new Date(u.createdAt);
-                                return d.toLocaleDateString('en-IN', {
-                                  day: 'numeric',
-                                  month: 'short',
-                                  year: 'numeric',
-                                });
-                              })()
-                            : <span className="text-grey-300 dark:text-[#6B7E95]">—</span>}
+                        <td className="py-3.5 px-4 text-[14px] text-grey-400 dark:text-[#6B7E95]">
+                          {formatDate(u.createdAt) ?? <span className="text-grey-300 dark:text-[#6B7E95]">—</span>}
                         </td>
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">

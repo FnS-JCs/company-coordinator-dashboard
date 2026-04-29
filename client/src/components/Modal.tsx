@@ -43,7 +43,7 @@ export const Modal: React.FC<ModalProps> = ({
         style={{ animation: 'modalIn 150ms ease-out' }}
       >
         <div className="flex justify-between items-center mb-5">
-          <h2 className="text-base font-semibold text-grey-900 dark:text-[#F0F4FA]">
+          <h2 className="text-[17px] font-semibold text-grey-900 dark:text-[#F0F4FA]">
             {title}
           </h2>
           <button

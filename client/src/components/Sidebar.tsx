@@ -31,7 +31,7 @@ const NavLink: React.FC<{
 }> = ({ to, icon: Icon, label, active, indent = false }) => (
   <Link
     to={to}
-    className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-all duration-150 ${
+    className={`flex items-center gap-3 rounded-lg text-[15px] font-medium transition-all duration-150 ${
       indent ? 'h-9 pl-9 pr-4' : 'h-11 px-4'
     } ${
       active
@@ -52,7 +52,7 @@ const NavButton: React.FC<{
 }> = ({ icon: Icon, label, onClick, danger = false }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 h-11 px-4 rounded-lg text-sm font-medium transition-all duration-150 ${
+    className={`w-full flex items-center gap-3 h-11 px-4 rounded-lg text-[15px] font-medium transition-all duration-150 ${
       danger
         ? 'text-white/65 hover:bg-red-500/20 hover:text-red-300'
         : 'text-white/65 hover:bg-white/[0.06] hover:text-white'
@@ -81,13 +81,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCreateCompany }) => {
   const roleLabel = () => {
     if (!user?.role) return null;
     if (user.role === 'admin') return 'Admin';
-    if (user.role === 'senior_coordinator') return 'SC';
-    if (user.role === 'junior_coordinator') return 'JC';
+    if (user.role === 'senior_coordinator') return 'Senior Coordinator';
+    if (user.role === 'junior_coordinator') return 'Junior Coordinator';
     return user.role;
   };
 
   return (
-    <aside className="hidden md:flex w-[260px] flex-shrink-0 flex-col h-full bg-navy dark:bg-[#0D1B2E]">
+    <aside className="hidden md:flex w-[260px] flex-shrink-0 flex-col h-screen fixed top-0 left-0 z-30 bg-navy dark:bg-[#0D1B2E]">
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-white/10 flex-shrink-0">
         <div>
@@ -106,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCreateCompany }) => {
             </span>
           )}
         </div>
-        <p className="text-white/40 text-[11px] mt-1.5 truncate">{user?.email || ''}</p>
+        <p className="text-white/40 text-[12px] mt-1.5 truncate">{user?.email?.toLowerCase() || ''}</p>
       </div>
 
       {/* Navigation */}
@@ -130,7 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCreateCompany }) => {
         {user?.role === 'senior_coordinator' && onCreateCompany && (
           <button
             onClick={onCreateCompany}
-            className="w-full flex items-center gap-3 h-11 px-4 rounded-lg text-sm font-medium text-white/65 hover:bg-white/[0.06] hover:text-white transition-all duration-150"
+            className="w-full flex items-center gap-3 h-11 px-4 rounded-lg text-[15px] font-medium text-white/65 hover:bg-white/[0.06] hover:text-white transition-all duration-150"
           >
             <Plus className="w-4 h-4 flex-shrink-0" />
             <span>Create Company</span>
@@ -141,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onCreateCompany }) => {
         <div className="pt-1">
           <button
             onClick={() => setToolsOpen(!toolsOpen)}
-            className={`w-full flex items-center justify-between h-11 px-4 rounded-lg text-sm font-medium transition-all duration-150 ${
+            className={`w-full flex items-center justify-between h-11 px-4 rounded-lg text-[15px] font-medium transition-all duration-150 ${
               isToolActive() && !toolsOpen
                 ? 'bg-white/10 text-white'
                 : 'text-white/65 hover:bg-white/[0.06] hover:text-white'

@@ -4,10 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { auth } from '../services/firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { authService } from '../services/api';
+import srccBuilding from '../assets/srcc-building.jpg';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setDevUser, setAuthUser } = useAuth();
+  const { setAuthUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -41,41 +42,37 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleDevLogin = (role: string, email: string, name: string) => {
-    localStorage.removeItem('idToken');
-    localStorage.removeItem('userData');
-    localStorage.setItem('devRole', role);
-    localStorage.setItem('devEmail', email);
-    localStorage.setItem('devName', name);
-    setDevUser(role);
-    if (role === 'admin') {
-      navigate('/admin');
-    } else {
-      navigate('/dashboard');
-    }
-  };
-
   return (
     <div className="min-h-screen flex">
-      {/* Left panel — navy branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-navy flex-col items-center justify-center p-12 relative overflow-hidden">
-        {/* Subtle background texture */}
-        <div className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px), radial-gradient(circle at 75% 75%, white 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-          }}
+      {/* Left panel — navy branding with building photo */}
+      <div
+        className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden"
+        style={{
+          backgroundImage: `url(${srccBuilding})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Navy overlay */}
+        <div
+          className="absolute inset-0"
+          style={{ backgroundColor: '#1B3055', opacity: 0.72 }}
         />
-        <div className="relative text-center">
-          {/* Crest placeholder */}
-          <div className="w-24 h-24 rounded-full border-2 border-white/20 flex items-center justify-center mx-auto mb-8">
-            <span className="text-white font-bold text-2xl tracking-tight">SRCC</span>
-          </div>
-          <h1 className="text-white text-3xl font-bold mb-2">The Placement Cell</h1>
-          <p className="text-white/50 text-sm">Shri Ram College of Commerce</p>
-          <p className="text-white/30 text-xs mt-6 max-w-xs leading-relaxed">
-            Coordinating placements and internships with precision and care.
-          </p>
+
+        <div className="relative z-10 text-center">
+          <h1
+            className="text-white mb-3"
+            style={{
+              fontFamily: "'Cormorant Garamond', serif",
+              fontSize: '56px',
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              lineHeight: 1.1,
+            }}
+          >
+            The Placement Cell
+          </h1>
+          <p className="text-white/60 text-lg font-light tracking-wide">Shri Ram College of Commerce</p>
         </div>
       </div>
 
@@ -89,6 +86,14 @@ const LoginPage: React.FC = () => {
             </div>
             <p className="text-grey-900 dark:text-[#F0F4FA] font-semibold text-sm">The Placement Cell</p>
           </div>
+
+          {/* Company Coordinator Dashboard label */}
+          <p
+            className="mb-2 font-semibold uppercase text-[#1B3055] dark:text-[#4A7FBF] whitespace-nowrap"
+            style={{ fontSize: '17px', letterSpacing: '0.06em' }}
+          >
+            Company Coordinator Dashboard
+          </p>
 
           <h2 className="text-2xl font-bold text-grey-900 dark:text-[#F0F4FA] mb-1">
             Welcome back
@@ -109,7 +114,6 @@ const LoginPage: React.FC = () => {
             disabled={loading}
             className="w-full h-10 flex items-center justify-center gap-3 border border-grey-200 dark:border-[#243D6A] rounded-lg text-sm font-medium text-grey-900 dark:text-[#F0F4FA] bg-white dark:bg-[#122240] hover:bg-grey-50 dark:hover:bg-[#1B3055] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {/* Google "G" icon */}
             <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 fill="#4285F4"
@@ -130,52 +134,6 @@ const LoginPage: React.FC = () => {
             </svg>
             {loading ? 'Signing in...' : 'Continue with Google'}
           </button>
-
-          {/* Dev section */}
-          <div className="mt-8">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-grey-200 dark:border-[#243D6A]" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="px-3 bg-white dark:bg-[#0D1B2E] text-[11px] font-medium text-grey-400 dark:text-[#6B7E95] uppercase tracking-widest">
-                  Development
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              {[
-                {
-                  label: 'Admin',
-                  role: 'admin',
-                  email: 'srcc.pc.jc.fns2526@gmail.com',
-                  name: 'Dev Admin',
-                },
-                {
-                  label: 'Senior Coordinator',
-                  role: 'senior_coordinator',
-                  email: 'seyanthegoat@gmail.com',
-                  name: 'Nayes',
-                },
-                {
-                  label: 'Junior Coordinator',
-                  role: 'junior_coordinator',
-                  email: 'seyan.sonone@gmail.com',
-                  name: 'Seyan',
-                },
-              ].map((dev) => (
-                <button
-                  key={dev.role}
-                  onClick={() => handleDevLogin(dev.role, dev.email, dev.name)}
-                  disabled={loading}
-                  className="w-full h-9 flex items-center justify-center rounded-lg text-[12px] font-medium text-grey-500 dark:text-[#6B7E95] border border-grey-200 dark:border-[#243D6A] hover:bg-grey-50 dark:hover:bg-[#122240] transition-all duration-150 disabled:opacity-40"
-                >
-                  {dev.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

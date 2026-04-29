@@ -30,7 +30,14 @@ export const DevBanner: React.FC = () => {
       style={{ height: 40, backgroundColor: '#D97706' }}
     >
       <span className="text-white text-[11px] font-semibold tracking-widest uppercase">
-        DEV MODE — Auth bypassed &nbsp;&middot;&nbsp; Role: {devRole}
+        DEV MODE — Auth bypassed &nbsp;&middot;&nbsp; Current role:{' '}
+        {devRole === 'senior_coordinator'
+          ? 'Senior Coordinator'
+          : devRole === 'junior_coordinator'
+          ? 'Junior Coordinator'
+          : devRole === 'admin'
+          ? 'Admin'
+          : devRole}
       </span>
       <div className="flex items-center gap-1">
         {roles.map((r) => (

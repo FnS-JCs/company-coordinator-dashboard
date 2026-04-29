@@ -91,9 +91,9 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E] flex">
+      <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E]">
         <Sidebar onCreateCompany={() => setShowCreateModal(true)} />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="ml-[260px] min-h-screen flex items-center justify-center">
           <p className="text-grey-400 dark:text-[#6B7E95] text-sm">Loading...</p>
         </div>
       </div>
@@ -101,10 +101,10 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E] flex">
+    <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E]">
       <Sidebar onCreateCompany={() => setShowCreateModal(true)} />
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="ml-[260px] overflow-y-auto">
         <div className="max-w-[1400px] mx-auto px-8 py-8">
           {/* Page header */}
           <div className="flex justify-between items-center mb-2">
@@ -165,7 +165,7 @@ const Dashboard: React.FC = () => {
                   <div
                     key={company.id}
                     onClick={() => navigate(`/dashboard/company/${company.id}`)}
-                    className="group relative bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] p-5 cursor-pointer transition-all duration-150 hover:shadow-sm hover:border-grey-400 dark:hover:border-[#4A7FBF]"
+                    className="relative bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] p-5 cursor-pointer transition-all duration-150 hover:shadow-sm hover:border-grey-400 dark:hover:border-[#4A7FBF]"
                   >
                     {/* Unread badge — absolute top right */}
                     {unread > 0 && (
@@ -175,13 +175,13 @@ const Dashboard: React.FC = () => {
                     )}
 
                     {/* Company name */}
-                    <h3 className="text-[15px] font-semibold text-grey-900 dark:text-[#F0F4FA] leading-tight pr-6">
+                    <h3 className="text-[17px] font-semibold text-grey-900 dark:text-[#F0F4FA] leading-tight pr-6">
                       {company.name}
                     </h3>
 
                     {/* Badges row */}
                     <div className="flex items-center gap-2 mt-2">
-                      <Badge variant={company.type === 'placement' ? 'navy' : 'default'}>
+                      <Badge variant={company.type === 'placement' ? 'navy' : 'teal'}>
                         {company.type}
                       </Badge>
                       {company.delegatedToJcEmail && (
@@ -197,8 +197,8 @@ const Dashboard: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Open button — appears on hover */}
-                    <div className="mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    {/* Open button — always visible */}
+                    <div className="mt-4">
                       <div className="w-full h-8 flex items-center justify-center rounded-lg bg-navy dark:bg-[#4A7FBF] text-white text-[12px] font-semibold">
                         Open
                       </div>

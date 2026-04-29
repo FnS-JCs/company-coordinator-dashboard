@@ -27,7 +27,10 @@ export default {
         danger: '#DC2626',
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      fontSize: {
+        base: ['15px', '1.6'],
       },
     },
   },

@@ -62,7 +62,7 @@ const CVSorterTool: React.FC = () => {
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-start gap-3">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/dashboard')}
             className="mt-0.5 p-1.5 rounded-lg text-grey-400 dark:text-[#6B7E95] hover:text-grey-700 dark:hover:text-[#A8B8CC] hover:bg-grey-100 dark:hover:bg-[#1B3055] transition-all"
             aria-label="Go back"
           >

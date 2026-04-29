@@ -14,6 +14,7 @@ import { Badge } from '../components/Badge';
 import { Modal } from '../components/Modal';
 import { Button } from '../components/Button';
 import { companyService, gmailService, userService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import type { Company, GmailEmail, User } from '../types';
 
 type EmailFilter = 'all' | 'unread' | 'read';
@@ -26,6 +27,8 @@ const inputCls =
 const CompanyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isJC = user?.role === 'junior_coordinator';
   const [company, setCompany] = useState<Company | null>(null);
   const [emails, setEmails] = useState<GmailEmail[]>([]);
   const [jcUsers, setJcUsers] = useState<User[]>([]);
@@ -178,9 +181,9 @@ const CompanyDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E] flex">
+      <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E]">
         <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="ml-[260px] min-h-screen flex items-center justify-center">
           <p className="text-grey-400 dark:text-[#6B7E95] text-sm">Loading...</p>
         </div>
       </div>
@@ -189,9 +192,9 @@ const CompanyDetail: React.FC = () => {
 
   if (!company) {
     return (
-      <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E] flex">
+      <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E]">
         <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="ml-[260px] min-h-screen flex items-center justify-center">
           <p className="text-grey-400 dark:text-[#6B7E95] text-sm">Company not found.</p>
         </div>
       </div>
@@ -199,10 +202,10 @@ const CompanyDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E] flex">
+    <div className="min-h-screen bg-grey-50 dark:bg-[#0D1B2E]">
       <Sidebar />
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="ml-[260px] overflow-y-auto">
         <div className="max-w-[1400px] mx-auto px-8 py-8">
           {/* Page header */}
           <div className="flex items-start gap-4 mb-6">
@@ -217,7 +220,7 @@ const CompanyDetail: React.FC = () => {
                 {company.name}
               </h1>
               <div className="flex items-center gap-2 mt-1.5">
-                <Badge variant={company.type === 'placement' ? 'navy' : 'default'}>
+                <Badge variant={company.type === 'placement' ? 'navy' : 'teal'}>
                   {company.type}
                 </Badge>
                 {company.delegatedToJcEmail && (
@@ -235,50 +238,57 @@ const CompanyDetail: React.FC = () => {
           </div>
 
           {/* Info cards row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-            {[
-              { label: 'Company Type', value: company.type },
-              { label: 'SC Email', value: company.seniorCoordinatorEmail },
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                className="bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] px-5 py-4"
-              >
-                <p className="text-[11px] font-medium text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-1">
-                  {label}
-                </p>
-                <p className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA] capitalize truncate">
-                  {value}
-                </p>
-              </div>
-            ))}
-
-            {/* Delegated To card */}
+          <div className={`grid grid-cols-1 ${isJC ? 'lg:grid-cols-1 max-w-xs' : 'lg:grid-cols-3'} gap-4 mb-6`}>
+            {/* Company Type — always visible */}
             <div className="bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] px-5 py-4">
               <p className="text-[11px] font-medium text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-1">
-                Delegated To
+                Company Type
               </p>
-              {company.delegatedToJcEmail ? (
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA] truncate">
-                    {company.delegatedToJcEmail}
-                  </p>
-                  <button
-                    onClick={handleRevertDelegation}
-                    className="flex items-center gap-1 text-[12px] font-medium text-warning dark:text-[#F59E0B] hover:underline shrink-0"
-                  >
-                    <Undo2 className="w-3 h-3" /> Revert
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowDelegateModal(true)}
-                  className="flex items-center gap-1.5 text-sm font-medium text-navy dark:text-[#4A7FBF] hover:underline"
-                >
-                  <UserPlus className="w-3.5 h-3.5" /> Delegate to JC
-                </button>
-              )}
+              <p className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA] capitalize truncate">
+                {company.type}
+              </p>
             </div>
+
+            {/* SC Email — SC/Admin only */}
+            {!isJC && (
+              <div className="bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] px-5 py-4">
+                <p className="text-[11px] font-medium text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-1">
+                  SC Email
+                </p>
+                <p className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA] truncate">
+                  {company.seniorCoordinatorEmail}
+                </p>
+              </div>
+            )}
+
+            {/* Delegated To — SC/Admin only */}
+            {!isJC && (
+              <div className="bg-white dark:bg-[#122240] rounded-xl border border-grey-200 dark:border-[#243D6A] px-5 py-4">
+                <p className="text-[11px] font-medium text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-1">
+                  Delegated To
+                </p>
+                {company.delegatedToJcEmail ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-grey-900 dark:text-[#F0F4FA] truncate">
+                      {company.delegatedToJcEmail}
+                    </p>
+                    <button
+                      onClick={handleRevertDelegation}
+                      className="flex items-center gap-1 text-[12px] font-medium text-warning dark:text-[#F59E0B] hover:underline shrink-0"
+                    >
+                      <Undo2 className="w-3 h-3" /> Revert
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowDelegateModal(true)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-navy dark:text-[#4A7FBF] hover:underline"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" /> Delegate to JC
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Rounds */}
@@ -404,7 +414,7 @@ const CompanyDetail: React.FC = () => {
 
                       {/* Sender */}
                       <span
-                        className={`text-sm flex-shrink-0 truncate ${
+                        className={`text-[15px] flex-shrink-0 truncate ${
                           isUnread
                             ? 'font-semibold text-grey-900 dark:text-[#F0F4FA]'
                             : 'font-medium text-grey-500 dark:text-[#A8B8CC]'
@@ -415,7 +425,7 @@ const CompanyDetail: React.FC = () => {
                       </span>
 
                       {/* Subject */}
-                      <span className="flex-1 text-sm text-grey-500 dark:text-[#A8B8CC] truncate min-w-0">
+                      <span className="flex-1 text-[15px] text-grey-500 dark:text-[#A8B8CC] truncate min-w-0">
                         {email.subject}
                       </span>
 

@@ -413,7 +413,7 @@ const ExcelFormatterTool: React.FC = () => {
     <div className="p-8">
       <div className="flex items-center gap-3 mb-1">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/dashboard')}
           className="p-1.5 rounded-lg text-grey-400 dark:text-[#6B7E95] hover:text-grey-700 dark:hover:text-[#A8B8CC] hover:bg-grey-100 dark:hover:bg-[#1B3055] transition-all"
           aria-label="Go back"
         >
@@ -452,7 +452,7 @@ const ExcelFormatterTool: React.FC = () => {
               />
             </svg>
             <p className="text-grey-700 dark:text-[#A8B8CC] font-medium">Drop your Superset export here</p>
-            <p className="text-grey-400 dark:text-[#6B7E95] text-sm mt-1">or click to browse — .xlsx files only</p>
+            <p className="text-grey-400 dark:text-[#6B7E95] text-sm mt-1">or click to browse (.xlsx files only)</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -488,7 +488,7 @@ const ExcelFormatterTool: React.FC = () => {
 
           <Card>
             <p className="text-xs text-grey-400 dark:text-[#6B7E95] uppercase tracking-wide mb-3">
-              Preview — first 5 rows (sorted)
+              Preview: first 5 rows (sorted)
             </p>
             <div className="overflow-x-auto rounded-lg border border-grey-200 dark:border-[#243D6A]">
               <table className="w-full text-sm">
